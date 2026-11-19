@@ -1,0 +1,7 @@
+2026-11-09T14:02:11Z api-gw-02.internal.acme.io WARN tls: certificate for api.acme.com expired at 2026-11-09T14:00:00Z
+2026-11-09T14:02:15Z api-gw-02.internal.acme.io ERROR tls handshake failed for 38% of client connections (mobile SDK pins leaf cert)
+2026-11-09T14:05:40Z pager: SEV-2 opened by on-call (r.mehta)
+2026-11-09T14:19:02Z api-gw-02.internal.acme.io INFO web clients unaffected (intermediate chain cached)
+2026-11-09T14:31:27Z ops: renewal job failed silently since 2026-10-10 (expired IAM token in cert-renewer on 10.4.2.17)
+2026-11-09T14:44:09Z api-gw-02.internal.acme.io INFO new certificate deployed; handshake errors back to baseline
+2026-11-09T15:10:00Z ops: follow-up: alert on certificate expiry 21 days ahead; fix renewer token rotation

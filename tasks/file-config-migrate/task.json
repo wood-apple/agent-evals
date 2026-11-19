@@ -1,0 +1,38 @@
+{
+  "id": "file-config-migrate",
+  "title": "Migrate a config file to v2",
+  "category": "files",
+  "tags": [
+    "json",
+    "editing"
+  ],
+  "sessions": [
+    {
+      "prompt": "Migrate config.json in place to schema version 2: add \"version\": 2; replace `timeout` (seconds) with `timeout_ms` (integer milliseconds); delete the deprecated `legacy_mode` key; and remove any endpoint whose value is null. Keep everything else unchanged. Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "file_state",
+      "checks": [
+        {
+          "path": "config.json",
+          "json_equals": {
+            "version": 2,
+            "service": "orders",
+            "timeout_ms": 2500,
+            "retries": 3,
+            "endpoints": {
+              "primary": "https://orders.example.com"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "read_file",
+    "write_file"
+  ]
+}

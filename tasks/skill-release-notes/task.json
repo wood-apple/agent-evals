@@ -1,0 +1,53 @@
+{
+  "id": "skill-release-notes",
+  "title": "Write release notes in ACME house style",
+  "category": "skill",
+  "tags": [
+    "skill:acme-release-notes",
+    "writing",
+    "judge"
+  ],
+  "sessions": [
+    {
+      "prompt": "changes.json describes the next release. Write RELEASE_NOTES.md in ACME house style for it. Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "file_state",
+      "label": "house-style structure",
+      "checks": [
+        {
+          "path": "RELEASE_NOTES.md",
+          "regex": [
+            "^# Ledgerly 4\\.2\\.0 — 2026-11-12$",
+            "^## Highlights$[\\s\\S]*^## Fixes$[\\s\\S]*^## Breaking changes$",
+            "\\(ACME-755\\)[\\s\\S]*\\(ACME-812\\)",
+            "\\(ACME-801\\)"
+          ],
+          "not_contains": [
+            "#755",
+            "#812",
+            "Bug fixes",
+            "Features"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "llm_judge",
+      "label": "clarity & accuracy",
+      "target": {
+        "kind": "file",
+        "path": "RELEASE_NOTES.md"
+      },
+      "rubric": "1. Every change from changes.json appears exactly once, under the right section (features → Highlights, fixes → Fixes, breaking → Breaking changes).\n2. Each item is rewritten for end users (what changed for them), not copied as an internal ticket title.\n3. The breaking change explains what users must do (grant/require the reports:read scope).\n4. No invented changes, versions or dates.\n5. Concise: one line per item.",
+      "reference": "Highlights: bulk-approve expenses from review queue (ACME-790); dark mode on mobile (ACME-799). Fixes (ascending ticket): rounding in multi-currency invoices (ACME-755); CSV export last row (ACME-812). Breaking: /v1/reports requires reports:read scope (ACME-801) — clients must request the scope.",
+      "pass_threshold": 4
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "id": "file-csv-to-json",
+  "title": "Convert and filter a CSV into JSON",
+  "category": "files",
+  "tags": [
+    "csv",
+    "json"
+  ],
+  "sessions": [
+    {
+      "prompt": "Convert inventory.csv into inventory.json: a JSON array of objects with keys sku (string), name (string), qty (integer) and price (number), keeping only rows with qty > 0, in the original order. Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "file_state",
+      "checks": [
+        {
+          "path": "inventory.json",
+          "json_equals": [
+            {
+              "sku": "SKU-102",
+              "name": "bolt-2",
+              "qty": 2,
+              "price": 13.39
+            },
+            {
+              "sku": "SKU-103",
+              "name": "gear-3",
+              "qty": 6,
+              "price": 0.25
+            },
+            {
+              "sku": "SKU-104",
+              "name": "spring-4",
+              "qty": 48,
+              "price": 3.76
+            },
+            {
+              "sku": "SKU-105",
+              "name": "nut-5",
+              "qty": 33,
+              "price": 2.74
+            },
+            {
+              "sku": "SKU-107",
+              "name": "washer-7",
+              "qty": 22,
+              "price": 11.86
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

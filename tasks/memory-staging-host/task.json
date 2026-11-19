@@ -1,0 +1,29 @@
+{
+  "id": "memory-staging-host",
+  "title": "Recall a host name from an earlier session",
+  "category": "memory",
+  "tags": [
+    "memory",
+    "multi-session"
+  ],
+  "sessions": [
+    {
+      "prompt": "Note for future sessions: the staging database host is db-stg-7.internal.acme.io and it listens on port 6432. Please remember it."
+    },
+    {
+      "prompt": "What's the staging database host and port? Answer as host:port. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "exact_match",
+      "expected": "db-stg-7.internal.acme.io:6432",
+      "normalize": [
+        "trim",
+        "strip_quotes",
+        "lower"
+      ]
+    }
+  ],
+  "timeout_s": 300
+}

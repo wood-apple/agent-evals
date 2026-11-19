@@ -1,0 +1,29 @@
+{
+  "id": "word-frequency",
+  "title": "Most frequent non-stopword",
+  "category": "data",
+  "tags": [
+    "text"
+  ],
+  "sessions": [
+    {
+      "prompt": "Find the most frequent word in story.txt, case-insensitively, ignoring every word listed in stopwords.txt. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "exact_match",
+      "expected": "lantern",
+      "normalize": [
+        "trim",
+        "lower",
+        "strip_punct",
+        "strip_quotes"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "run_python"
+  ]
+}

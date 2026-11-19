@@ -1,0 +1,28 @@
+{
+  "id": "memory-preferences",
+  "title": "Apply formatting preferences given in an earlier session",
+  "category": "memory",
+  "tags": [
+    "memory",
+    "multi-session"
+  ],
+  "sessions": [
+    {
+      "prompt": "Some preferences for all our future conversations: I write dates as DD.MM.YYYY, and I want money shown in Indian rupees with the ₹ symbol, thousands separators and no decimals (rounded), e.g. ₹1,500. Please remember these preferences."
+    },
+    {
+      "prompt": "Format these per my usual preferences: the date 2026-11-18 and the amount 2499.6 rupees. Reply with just the two formatted values on one line, separated by ' | '."
+    }
+  ],
+  "graders": [
+    {
+      "type": "regex",
+      "patterns": [
+        "18\\.11\\.2026",
+        "₹\\s?2,500(?![\\d.])"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "notes": "Session 2 is unanswerable without memory carried over from session 1."
+}

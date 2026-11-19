@@ -1,0 +1,27 @@
+{
+  "id": "skill-acme-invoice-id",
+  "title": "Generate an ACME invoice ID",
+  "category": "skill",
+  "tags": [
+    "skill:acme-finance",
+    "convention"
+  ],
+  "sessions": [
+    {
+      "prompt": "Generate the ACME invoice ID for customer 'Initech', invoice date 2026-11-02, sequence number 1307. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "exact_match",
+      "expected": "INV-2611-NTC-01307-V",
+      "normalize": [
+        "trim",
+        "strip_quotes",
+        "strip_punct"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "notes": "The ID format exists only in the acme-finance skill; without it the agent can only guess."
+}

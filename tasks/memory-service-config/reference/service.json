@@ -1,0 +1,5 @@
+{
+  "name": "bluefin",
+  "port": 7443,
+  "owner": "payments-core"
+}

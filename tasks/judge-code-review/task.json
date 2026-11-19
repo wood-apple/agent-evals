@@ -1,0 +1,26 @@
+{
+  "id": "judge-code-review",
+  "title": "Review a risky diff",
+  "category": "writing",
+  "tags": [
+    "judge",
+    "security",
+    "code-review"
+  ],
+  "sessions": [
+    {
+      "prompt": "Review the change in change.diff as a senior engineer. List the problems that should block merging, most severe first, each with a concrete fix. Your final reply is the review."
+    }
+  ],
+  "graders": [
+    {
+      "type": "llm_judge",
+      "rubric": "1. Identifies the SQL injection from interpolating email into the query (f-string) and recommends a parameterised query.\n2. Identifies that the plaintext password is written to logs and says to remove it.\n3. Orders SQL injection / password logging as the most severe issues.\n4. Does not present invented or incorrect problems as blocking.\n5. Fixes are concrete (code or precise instruction).",
+      "pass_threshold": 4
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "read_file"
+  ]
+}

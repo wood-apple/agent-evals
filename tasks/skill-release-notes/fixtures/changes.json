@@ -1,0 +1,32 @@
+{
+  "product": "Ledgerly",
+  "version": "4.2.0",
+  "date": "2026-11-12",
+  "changes": [
+    {
+      "type": "fix",
+      "ticket": 812,
+      "summary": "CSV export no longer drops the last row when the file ends without a newline"
+    },
+    {
+      "type": "feature",
+      "ticket": 790,
+      "summary": "Bulk-approve expenses from the review queue"
+    },
+    {
+      "type": "fix",
+      "ticket": 755,
+      "summary": "Currency rounding in multi-currency invoices now matches the ledger"
+    },
+    {
+      "type": "breaking",
+      "ticket": 801,
+      "summary": "The /v1/reports endpoint now requires the reports:read scope"
+    },
+    {
+      "type": "feature",
+      "ticket": 799,
+      "summary": "Dark mode for the mobile app"
+    }
+  ]
+}

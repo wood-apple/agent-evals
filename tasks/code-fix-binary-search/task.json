@@ -1,0 +1,35 @@
+{
+  "id": "code-fix-binary-search",
+  "title": "Fix a buggy binary search",
+  "category": "coding",
+  "tags": [
+    "python",
+    "debugging",
+    "unit-tests"
+  ],
+  "sessions": [
+    {
+      "prompt": "search.py contains `find_first(items, target)`, which should return the index of the FIRST occurrence of target in a sorted list, or -1 if absent. Users report it is wrong for some inputs. Fix it in place without changing its signature. Reply with a one-line description of the bug."
+    }
+  ],
+  "graders": [
+    {
+      "type": "unit_tests",
+      "files": [
+        "test_search.py"
+      ],
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_search"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "read_file",
+    "write_file"
+  ]
+}

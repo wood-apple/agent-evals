@@ -1,0 +1,33 @@
+{
+  "id": "code-roman",
+  "title": "Roman numeral conversion both ways",
+  "category": "coding",
+  "tags": [
+    "python",
+    "unit-tests"
+  ],
+  "sessions": [
+    {
+      "prompt": "Create roman.py with `to_roman(n: int) -> str` (1..3999, raise ValueError otherwise) and `from_roman(s: str) -> int` that accepts only canonical uppercase numerals (e.g. 'IIII' and 'IC' are invalid → ValueError). Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "unit_tests",
+      "files": [
+        "test_roman.py"
+      ],
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_roman"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

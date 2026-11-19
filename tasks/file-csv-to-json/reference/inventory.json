@@ -1,0 +1,32 @@
+[
+  {
+    "sku": "SKU-102",
+    "name": "bolt-2",
+    "qty": 2,
+    "price": 13.39
+  },
+  {
+    "sku": "SKU-103",
+    "name": "gear-3",
+    "qty": 6,
+    "price": 0.25
+  },
+  {
+    "sku": "SKU-104",
+    "name": "spring-4",
+    "qty": 48,
+    "price": 3.76
+  },
+  {
+    "sku": "SKU-105",
+    "name": "nut-5",
+    "qty": 33,
+    "price": 2.74
+  },
+  {
+    "sku": "SKU-107",
+    "name": "washer-7",
+    "qty": 22,
+    "price": 11.86
+  }
+]

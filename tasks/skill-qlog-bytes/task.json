@@ -1,0 +1,26 @@
+{
+  "id": "skill-qlog-bytes",
+  "title": "Total bytes from a proprietary log format",
+  "category": "skill",
+  "tags": [
+    "skill:qlog-format",
+    "logs"
+  ],
+  "sessions": [
+    {
+      "prompt": "access.qlog is an ACME qlog file. How many bytes in total did user u17 transfer, counting records as the qlog format specifies? Give an integer number of bytes. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "numeric",
+      "expected": 59770880,
+      "tolerance": 0
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "run_python"
+  ],
+  "notes": "Sizes are hex KiB and retry/cache records are excluded — documented only in the qlog-format skill."
+}

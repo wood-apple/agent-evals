@@ -1,0 +1,33 @@
+{
+  "id": "code-slugify",
+  "title": "Implement a URL slug function",
+  "category": "coding",
+  "tags": [
+    "python",
+    "unit-tests"
+  ],
+  "sessions": [
+    {
+      "prompt": "Create slug.py with `slugify(text: str, max_len: int = 40) -> str`: lowercase; transliterate accented Latin letters to ASCII (é→e, ß→ss, ø→o); replace every run of characters that are not a-z or 0-9 with a single hyphen; strip leading/trailing hyphens; if longer than max_len, cut at the last hyphen at or before max_len (or hard-cut at max_len if there is none) and strip trailing hyphens. Return '' for input with no usable characters. Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "unit_tests",
+      "files": [
+        "test_slug.py"
+      ],
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_slug"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

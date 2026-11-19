@@ -1,0 +1,22 @@
+{
+  "id": "judge-decline-email",
+  "title": "Decline a vendor proposal politely",
+  "category": "writing",
+  "tags": [
+    "judge",
+    "communication"
+  ],
+  "sessions": [
+    {
+      "prompt": "Draft an email (with a Subject line) declining Northwind Analytics' proposal for a data-quality monitoring pilot. Reason: our budget is frozen until Q3 2027. Keep the relationship warm and invite them to reconnect in Q3 2027, but make no commitment to buy. Maximum 120 words in the body. Your final reply is the email."
+    }
+  ],
+  "graders": [
+    {
+      "type": "llm_judge",
+      "rubric": "1. Has a subject line and clearly declines the pilot now.\n2. Gives the reason (budget frozen until Q3 2027) without extra invented reasons.\n3. Invites reconnecting in Q3 2027 while making NO commitment or implied promise to buy.\n4. Warm, professional tone; addressed to Northwind Analytics.\n5. Body is at most ~120 words.",
+      "pass_threshold": 4
+    }
+  ],
+  "timeout_s": 300
+}

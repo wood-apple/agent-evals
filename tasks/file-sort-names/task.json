@@ -1,0 +1,43 @@
+{
+  "id": "file-sort-names",
+  "title": "Sort and de-duplicate a list of names",
+  "category": "files",
+  "tags": [
+    "text",
+    "editing"
+  ],
+  "sessions": [
+    {
+      "prompt": "names.txt has one name per line. Write sorted_names.txt with the names sorted case-insensitively (Python's str.casefold order), removing case-insensitive duplicates and keeping the FIRST spelling that appears in names.txt. One name per line, no blank lines. Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "file_state",
+      "checks": [
+        {
+          "path": "sorted_names.txt",
+          "lines_equal": [
+            "alice",
+            "Bob",
+            "Charlie",
+            "dave",
+            "eve",
+            "Frank",
+            "maría",
+            "Zoë",
+            "Älva"
+          ]
+        },
+        {
+          "path": "names.txt",
+          "equals": "maría\nBob\nalice\nCharlie\nbob\nÄlva\ndave\nAlice\neve\nZoë\ncharlie\nFrank"
+        }
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

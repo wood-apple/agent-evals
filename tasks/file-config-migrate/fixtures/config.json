@@ -1,0 +1,10 @@
+{
+  "service": "orders",
+  "timeout": 2.5,
+  "retries": 3,
+  "legacy_mode": true,
+  "endpoints": {
+    "primary": "https://orders.example.com",
+    "fallback": null
+  }
+}

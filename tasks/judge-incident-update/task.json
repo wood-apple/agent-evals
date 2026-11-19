@@ -1,0 +1,40 @@
+{
+  "id": "judge-incident-update",
+  "title": "Customer-facing incident update",
+  "category": "writing",
+  "tags": [
+    "judge",
+    "communication"
+  ],
+  "sessions": [
+    {
+      "prompt": "incident.log contains the internal timeline of yesterday's incident. Write the customer-facing status-page update (3 to 5 sentences) as your final reply. Do not include anything else."
+    }
+  ],
+  "graders": [
+    {
+      "type": "llm_judge",
+      "rubric": "1. States customer impact: API/mobile app requests failed (roughly a third), web largely unaffected.\n2. States the time window: about 14:02–14:44 UTC on 9 Nov 2026 (~42 minutes).\n3. Explains the cause in plain language (an expired security/TLS certificate) without blaming individuals.\n4. Says it is resolved and names a prevention step (earlier expiry alerting / fixing automatic renewal).\n5. Contains NO internal details: no hostnames, IPs, employee names, ticket/SEV jargon.\n6. Professional, apologetic tone; 3–5 sentences.",
+      "pass_threshold": 4
+    },
+    {
+      "type": "regex",
+      "label": "no internal identifiers",
+      "required": false,
+      "patterns": [
+        "."
+      ],
+      "forbidden": [
+        "api-gw-02",
+        "internal\\.acme",
+        "10\\.4\\.2\\.17",
+        "r\\.mehta",
+        "SEV-2"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "read_file"
+  ]
+}

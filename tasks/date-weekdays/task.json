@@ -1,0 +1,23 @@
+{
+  "id": "date-weekdays",
+  "title": "Count weekdays in a date range",
+  "category": "reasoning",
+  "tags": [
+    "dates"
+  ],
+  "sessions": [
+    {
+      "prompt": "How many weekdays (Monday–Friday, ignoring holidays) are there from 2026-01-05 to 2026-03-27, both inclusive? End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "exact_match",
+      "expected": "60"
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "run_python"
+  ]
+}

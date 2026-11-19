@@ -1,0 +1,26 @@
+{
+  "id": "csv-revenue-west",
+  "title": "Total revenue for one region from a CSV",
+  "category": "data",
+  "tags": [
+    "csv",
+    "arithmetic"
+  ],
+  "sessions": [
+    {
+      "prompt": "The file sales.csv lists sales with units and unit_price. What is the total revenue (units × unit_price, summed) for the West region? Give the number rounded to 2 decimals. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "numeric",
+      "expected": 9340.07,
+      "tolerance": 0.011
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "read_file",
+    "run_python"
+  ]
+}

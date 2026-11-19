@@ -1,0 +1,33 @@
+{
+  "id": "code-dedupe-records",
+  "title": "Deduplicate customer records by a spec",
+  "category": "coding",
+  "tags": [
+    "python",
+    "unit-tests"
+  ],
+  "sessions": [
+    {
+      "prompt": "Create dedupe.py with `dedupe(records: list[dict]) -> list[dict]`. Each record has 'email', 'name' and 'updated_at' (ISO-8601 string). Two records are duplicates when their emails are equal after trimming whitespace and lower-casing. For each group keep the record with the latest updated_at (on a tie keep the one that appears later in the input), with its email normalised (trimmed + lowercase). Return the kept records sorted by normalised email. Do not mutate the input. Reply briefly when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "unit_tests",
+      "files": [
+        "test_dedupe.py"
+      ],
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_dedupe"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

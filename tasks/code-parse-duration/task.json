@@ -1,0 +1,33 @@
+{
+  "id": "code-parse-duration",
+  "title": "Implement a duration parser",
+  "category": "coding",
+  "tags": [
+    "python",
+    "unit-tests"
+  ],
+  "sessions": [
+    {
+      "prompt": "Create duration.py with a function `parse_duration(text: str) -> int` that returns a number of seconds. Input is a sequence of <integer><unit> parts with units d, h, m, s (e.g. '1h30m', '2d', '45s', '1d2h3m4s'), optionally separated by spaces. Units must appear in descending order (d, h, m, s) and at most once each. Raise ValueError for empty input, unknown units, missing numbers, repeated or out-of-order units. Reply with a short summary when done."
+    }
+  ],
+  "graders": [
+    {
+      "type": "unit_tests",
+      "files": [
+        "test_duration.py"
+      ],
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_duration"
+      ]
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "write_file"
+  ]
+}

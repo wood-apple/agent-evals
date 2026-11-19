@@ -1,0 +1,24 @@
+{
+  "id": "primes-sum",
+  "title": "Sum of primes below a bound",
+  "category": "reasoning",
+  "tags": [
+    "math"
+  ],
+  "sessions": [
+    {
+      "prompt": "What is the sum of all prime numbers strictly less than 20000? End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "numeric",
+      "expected": 21171191,
+      "tolerance": 0
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "run_python"
+  ]
+}

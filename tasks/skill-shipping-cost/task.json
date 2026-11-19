@@ -1,0 +1,22 @@
+{
+  "id": "skill-shipping-cost",
+  "title": "Quote an ACME shipping cost",
+  "category": "skill",
+  "tags": [
+    "skill:acme-shipping",
+    "arithmetic"
+  ],
+  "sessions": [
+    {
+      "prompt": "Quote the ACME Ground shipping price in USD for a parcel of 3.2 kg measuring 40 × 30 × 20 cm going to ZIP code 84101. Give the amount with 2 decimals, no currency symbol. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "numeric",
+      "expected": 27.74,
+      "tolerance": 0.001
+    }
+  ],
+  "timeout_s": 300
+}

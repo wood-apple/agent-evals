@@ -1,0 +1,36 @@
+{
+  "defaults": {
+    "retry": {
+      "max_attempts": 3,
+      "backoff_ms": 250
+    }
+  },
+  "regions": {
+    "us": {
+      "services": {
+        "payments": {
+          "retry": {
+            "backoff_ms": 400
+          }
+        },
+        "search": {
+          "retry": {
+            "max_attempts": 5
+          }
+        }
+      }
+    },
+    "eu": {
+      "services": {
+        "payments": {
+          "timeout_ms": 900,
+          "retry": {
+            "backoff_ms": 1200,
+            "max_attempts": 4
+          }
+        },
+        "search": {}
+      }
+    }
+  }
+}

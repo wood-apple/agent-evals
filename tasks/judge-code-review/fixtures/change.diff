@@ -1,0 +1,23 @@
+--- a/app/users.py
++++ b/app/users.py
+@@ -1,14 +1,22 @@
+ import logging
+ from app.db import get_cursor
+
+ log = logging.getLogger(__name__)
+
+-def find_user(email):
+-    cur = get_cursor()
+-    cur.execute("SELECT id, email FROM users WHERE email = %s", (email,))
+-    return cur.fetchone()
++def find_user(email):
++    cur = get_cursor()
++    cur.execute(f"SELECT id, email, password_hash FROM users WHERE email = '{email}'")
++    return cur.fetchone()
++
++def login(email, password):
++    log.info("login attempt email=%s password=%s", email, password)
++    user = find_user(email)
++    if user is None:
++        return None
++    return user if check_password(password, user[2]) else None

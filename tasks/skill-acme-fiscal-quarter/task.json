@@ -1,0 +1,27 @@
+{
+  "id": "skill-acme-fiscal-quarter",
+  "title": "Map dates to ACME fiscal quarters",
+  "category": "skill",
+  "tags": [
+    "skill:acme-finance",
+    "dates"
+  ],
+  "sessions": [
+    {
+      "prompt": "Which ACME fiscal quarter does each of these dates fall in: 2026-01-15, 2026-02-01, 2026-10-31? Use ACME's fiscal-quarter label format and list them in the same order, comma-separated. End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "exact_match",
+      "expected": "FY25-Q4, FY26-Q1, FY26-Q3",
+      "normalize": [
+        "trim",
+        "strip_quotes",
+        "strip_punct",
+        "collapse_ws"
+      ]
+    }
+  ],
+  "timeout_s": 300
+}

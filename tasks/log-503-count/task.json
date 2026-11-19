@@ -1,0 +1,25 @@
+{
+  "id": "log-503-count",
+  "title": "Count specific errors in a server log",
+  "category": "data",
+  "tags": [
+    "logs",
+    "counting"
+  ],
+  "sessions": [
+    {
+      "prompt": "In server.log, how many lines have level ERROR and status=503 with a timestamp between 10:00:00 and 10:59:59 (inclusive)? End your reply with a line of the form `ANSWER: <answer>`."
+    }
+  ],
+  "graders": [
+    {
+      "type": "exact_match",
+      "expected": "9"
+    }
+  ],
+  "timeout_s": 300,
+  "expected_tools": [
+    "read_file",
+    "run_python"
+  ]
+}

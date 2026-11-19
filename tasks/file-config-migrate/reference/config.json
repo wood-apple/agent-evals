@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "service": "orders",
+  "timeout_ms": 2500,
+  "retries": 3,
+  "endpoints": {
+    "primary": "https://orders.example.com"
+  }
+}

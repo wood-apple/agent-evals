@@ -1,0 +1,3 @@
+1. SQL injection (blocker): find_user builds the query with an f-string, so a crafted email can run arbitrary SQL. Restore the parameterised query: cur.execute("SELECT id, email, password_hash FROM users WHERE email = %s", (email,)).
+2. Plaintext password in logs (blocker): login() logs the password. Remove it: log.info("login attempt email=%s", email).
+3. Minor: check_password is not imported in this module; import it.
