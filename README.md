@@ -13,3 +13,11 @@ cd worker
 uv sync
 uv run pytest
 ```
+
+### Inspecting results
+
+Results live in a single SQLite file. Open it with the bundled settings for readable output:
+
+```bash
+sqlite3 -init .sqliterc results/evals.db
+```

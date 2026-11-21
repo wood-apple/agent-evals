@@ -1,0 +1,4 @@
+.headers on
+.mode box
+.timer on
+pragma foreign_keys = on;
