@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import asdict, dataclass, field
+
+from evals.hashing import content_hash
 
 
 @dataclass(frozen=True)
@@ -31,5 +31,4 @@ class Config:
     def id(self) -> str:
         payload = asdict(self)
         payload.pop("label")
-        payload_str = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(payload_str.encode()).hexdigest()[:12]
+        return content_hash(payload)
