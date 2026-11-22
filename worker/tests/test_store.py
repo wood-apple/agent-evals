@@ -1,7 +1,13 @@
+import sqlite3
+
 import pytest
 
 from evals.config import Config, Settings
+from evals.experiment import Experiment, TrialResult, TrialTrace
 from evals.store import Store
+
+CONFIG = Config(harness="baseline", model="m")
+EMPTY = TrialTrace(events=[], grades=[])
 
 
 @pytest.fixture
@@ -9,6 +15,28 @@ def store(tmp_path):
     store = Store(tmp_path / "evals.db")
     yield store
     store.close()
+
+
+@pytest.fixture
+def experiment(store):
+    store.save_config(CONFIG)
+    experiment = Experiment(
+        id="exp1", name="demo", task_ids=("t1",), config_ids=(CONFIG.id,), n_trials=2
+    )
+    store.save_experiment(experiment)
+    return experiment
+
+
+def make_result(index=0, status="ok", **fields):
+    return TrialResult(
+        experiment_id="exp1",
+        task_id="t1",
+        task_version="v1",
+        config_id=CONFIG.id,
+        trial_index=index,
+        status=status,
+        **fields,
+    )
 
 
 def test_config_round_trip_keeps_id(store):
@@ -47,3 +75,57 @@ def test_reopening_existing_database(tmp_path):
 
 def test_wal_mode_enabled(store):
     assert store.conn.execute("pragma journal_mode").fetchone()[0] == "wal"
+
+
+def test_trial_and_trace_round_trip(store, experiment):
+    result = make_result(passed=True, score=1.0)
+    events = [{"type": "message", "role": "user", "content": "hi"}]
+    grades = [{"grader": "exact_match", "passed": True}]
+
+    assert store.save_trial(result, TrialTrace(events=events, grades=grades)) is True
+
+    [row] = store.get_trials("exp1")
+    assert row["passed"] == 1
+    assert store.get_trace(result.id) == TrialTrace(events=events, grades=grades)
+
+
+def test_same_trial_is_saved_once(store, experiment):
+    store.save_trial(make_result(), EMPTY)
+    assert store.save_trial(make_result(), EMPTY) is False
+    assert len(store.get_trials("exp1")) == 1
+
+
+def test_failed_trace_write_rolls_back_trial(store, experiment):
+    with pytest.raises(TypeError):
+        store.save_trial(make_result(), TrialTrace([{"bad": object()}], []))
+    assert store.get_trials("exp1") == []
+
+
+def test_errored_trials_are_retried_on_resume(store, experiment):
+    ok = make_result(index=0, passed=False)
+    errored = make_result(index=1, status="error", error="rate limited")
+    store.save_trial(ok, EMPTY)
+    store.save_trial(errored, EMPTY)
+
+    assert store.finished_trial_ids("exp1") == {ok.id}
+    assert store.clear_errored_trials("exp1") == 1
+    assert store.save_trial(errored, EMPTY) is True
+
+
+def test_trial_for_unknown_experiment_is_rejected(store):
+    store.save_config(CONFIG)
+    with pytest.raises(sqlite3.IntegrityError):
+        store.save_trial(make_result(), EMPTY)
+
+
+def test_lists_become_tuples_and_config_order_is_kept():
+    experiment = Experiment(
+        id="e", name="n", task_ids=["b", "a"], config_ids=["B", "A"], n_trials=1
+    )
+    assert experiment.task_ids == ("a", "b")
+    assert experiment.config_ids == ("B", "A")
+
+
+def test_zero_trials_rejected():
+    with pytest.raises(ValueError):
+        Experiment(id="e", name="n", task_ids=["a"], config_ids=["A"], n_trials=0)

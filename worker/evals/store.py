@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from evals.config import Config, Settings
+from evals.experiment import Experiment, TrialResult, TrialTrace
 
 SCHEMA = (Path(__file__).parent / "schema.sql").read_text()
 
@@ -49,6 +50,106 @@ class Store:
             model=row["model"],
             label=row["label"],
             settings=Settings(**json.loads(row["settings"])),
+        )
+
+    def save_experiment(self, experiment: Experiment) -> None:
+        with self.conn:
+            self.conn.execute(
+                "insert into experiments"
+                " (id, name, task_ids, config_ids, n_trials, seed, status, created_at)"
+                " values (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    experiment.id,
+                    experiment.name,
+                    json.dumps(list(experiment.task_ids)),
+                    json.dumps(list(experiment.config_ids)),
+                    experiment.n_trials,
+                    experiment.seed,
+                    "pending",
+                    now(),
+                ),
+            )
+
+    def set_experiment_status(self, experiment_id: str, status: str) -> None:
+        with self.conn:
+            self.conn.execute(
+                "update experiments set status = ? where id = ?",
+                (status, experiment_id),
+            )
+
+    def save_trial(self, result: TrialResult, traces: TrialTrace):
+        with self.conn:
+            cursor = self.conn.execute(
+                "insert or ignore into trials"
+                " (id, experiment_id, task_id, task_version, config_id, trial_index, status,"
+                " passed, score, input_tokens, output_tokens, cost_usd, latency_ms, error,"
+                " failure_category, finished_at)"
+                " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    result.id,
+                    result.experiment_id,
+                    result.task_id,
+                    result.task_version,
+                    result.config_id,
+                    result.trial_index,
+                    result.status,
+                    result.passed,
+                    result.score,
+                    result.input_tokens,
+                    result.output_tokens,
+                    result.cost_usd,
+                    result.latency_ms,
+                    result.error,
+                    result.failure_category,
+                    now(),
+                ),
+            )
+            if cursor.rowcount == 0:
+                return False
+            self.conn.execute(
+                "insert into traces (trial_id, events, grades) values (?, ?, ?)",
+                (result.id, json.dumps(traces.events), json.dumps(traces.grades)),
+            )
+        return True
+
+    def finished_trial_ids(self, experiment_id: str) -> set[str]:
+        rows = self.conn.execute(
+            "select id from trials where experiment_id = ? and status != 'error'",
+            (experiment_id,),
+        )
+        return {row["id"] for row in rows}
+
+    def clear_errored_trials(self, experiment_id: str) -> int:
+        with self.conn:
+            self.conn.execute(
+                "delete from traces where trial_id in"
+                " (select id from trials where experiment_id = ? and status = 'error')",
+                (experiment_id,),
+            )
+            cursor = self.conn.execute(
+                "delete from trials where experiment_id = ? and status = 'error'",
+                (experiment_id,),
+            )
+        return cursor.rowcount
+
+    def get_trials(self, experiment_id: str) -> list[dict]:
+        rows = self.conn.execute(
+            "select * from trials where experiment_id = ?"
+            " order by task_id, config_id, trial_index",
+            (experiment_id,),
+        )
+        return [dict(row) for row in rows]
+
+    def get_trace(self, trial_id: str) -> TrialTrace:
+        row = self.conn.execute(
+            "select * from traces where trial_id = ? ",
+            (trial_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(trial_id)
+        return TrialTrace(
+            grades=json.loads(row["grades"]),
+            events=json.loads(row["events"]),
         )
 
 
