@@ -37,16 +37,15 @@ class TrialResult:
     latency_ms: int = 0
     error: str | None = None
     failure_category: str | None = None
+    finished_at: str | None = None
 
     @property
     def id(self) -> str:
-        return content_hash(
-            {
-                "experiment_id": self.experiment_id,
-                "task_id": self.task_id,
-                "config_id": self.config_id,
-                "trial_index": self.trial_index,
-            }
+        return trial_id(
+            self.experiment_id,
+            self.task_id,
+            self.config_id,
+            self.trial_index,
         )
 
 
@@ -54,3 +53,14 @@ class TrialResult:
 class TrialTrace:
     events: list[dict]
     grades: list[dict]
+
+
+def trial_id(experiment_id: str, task_id: str, config_id: str, trial_index: str) -> str:
+    return content_hash(
+        {
+            "experiment_id": experiment_id,
+            "task_id": task_id,
+            "config_id": config_id,
+            "trial_index": trial_index,
+        }
+    )

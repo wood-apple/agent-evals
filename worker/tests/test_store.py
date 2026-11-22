@@ -1,3 +1,4 @@
+import dataclasses
 import sqlite3
 
 import pytest
@@ -84,8 +85,10 @@ def test_trial_and_trace_round_trip(store, experiment):
 
     assert store.save_trial(result, TrialTrace(events=events, grades=grades)) is True
 
-    [row] = store.get_trials("exp1")
-    assert row["passed"] == 1
+    [loaded] = store.get_trials("exp1")
+    assert loaded.passed is True
+    assert loaded.id == result.id
+    assert dataclasses.replace(loaded, finished_at=None) == result
     assert store.get_trace(result.id) == TrialTrace(events=events, grades=grades)
 
 

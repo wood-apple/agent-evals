@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -101,7 +101,7 @@ class Store:
                     result.latency_ms,
                     result.error,
                     result.failure_category,
-                    now(),
+                    result.finished_at or now(),
                 ),
             )
             if cursor.rowcount == 0:
@@ -132,13 +132,13 @@ class Store:
             )
         return cursor.rowcount
 
-    def get_trials(self, experiment_id: str) -> list[dict]:
+    def get_trials(self, experiment_id: str) -> list[TrialResult]:
         rows = self.conn.execute(
             "select * from trials where experiment_id = ?"
             " order by task_id, config_id, trial_index",
             (experiment_id,),
         )
-        return [dict(row) for row in rows]
+        return [row_to_trial_result(row) for row in rows]
 
     def get_trace(self, trial_id: str) -> TrialTrace:
         row = self.conn.execute(
@@ -155,3 +155,12 @@ class Store:
 
 def now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def row_to_trial_result(row: sqlite3.Row) -> TrialResult:
+    names = {f.name for f in fields(TrialResult)}
+    columns = row.keys()
+    values = {name: row[name] for name in names if name in columns}
+    if values["passed"] is not None:
+        values["passed"] = bool(values["passed"])
+    return TrialResult(**values)
