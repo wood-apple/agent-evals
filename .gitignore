@@ -11,3 +11,4 @@ results/
 *.db-wal
 *.db-shm
 .DS_Store
+dist-test/
