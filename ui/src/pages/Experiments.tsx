@@ -6,10 +6,23 @@ import { useData } from '../useData';
 
 export function ExperimentsPage() {
   const experiments = useData(api.experiments, [], 5000);
+  const [status, setStatus] = useState('');
+  const statusOf = (e: { running: boolean; status: string }) => (e.running ? 'running' : e.status);
+  const statuses = [...new Set((experiments.data ?? []).map(statusOf))].sort();
+  const shown = (experiments.data ?? []).filter((e) => !status || statusOf(e) === status);
   return (
     <>
       <h2>Experiments</h2>
       {experiments.error && <p className="error">{experiments.error}</p>}
+      <label>
+        Status{' '}
+        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">all</option>
+          {statuses.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+      </label>
       <table>
         <thead>
           <tr>
@@ -23,14 +36,14 @@ export function ExperimentsPage() {
           </tr>
         </thead>
         <tbody>
-          {(experiments.data ?? []).map((e) => (
+          {shown.map((e) => (
             <tr key={e.id}>
               <td>
                 <a href={href('experiment', e.id)}>{e.name}</a>
                 <div className="muted mono">{e.id}</div>
               </td>
               <td>
-                <span className={`badge status-${e.running ? 'running' : e.status}`}>{e.running ? 'running' : e.status}</span>
+                <span className={`badge status-${statusOf(e)}`}>{statusOf(e)}</span>
               </td>
               <td>
                 {e.finished} / {e.planned}
