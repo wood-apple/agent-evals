@@ -203,3 +203,17 @@ async def test_judge_can_grade_a_file(tmp_path):
 async def test_unknown_grader_type_is_an_error():
     with pytest.raises(GraderError, match="unknown grader"):
         await grade_one({"type": "vibes"})
+
+
+async def test_judge_sees_the_files_the_agent_was_given():
+    model = FakeJudgeModel('{"score": 5}')
+    task = Task(
+        id="t",
+        title="t",
+        category="c",
+        sessions=("q",),
+        graders=(JUDGE_SPEC,),
+        fixtures={"changes.json": "[1]"},
+    )
+    await grade_trial(task, "notes", None, Judge(model))
+    assert "--- changes.json ---\n[1]" in model.prompts[0]

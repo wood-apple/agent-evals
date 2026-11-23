@@ -241,7 +241,7 @@ You are grading an AI assistant's work against a rubric. Be strict and literal.
 <task>
 {task}
 </task>
-
+{files}
 <rubric>
 {rubric}
 </rubric>
@@ -287,6 +287,7 @@ class Judge:
         reference = spec.get("reference")
         prompt = JUDGE_PROMPT.format(
             task="\n\n".join(task.sessions),
+            files=format_files(task.fixtures),
             rubric=spec["rubric"] if "rubric" in spec else default_rubric(spec),
             reference=f"\n<reference_answer>\n{reference}\n</reference_answer>\n"
             if reference
@@ -305,6 +306,13 @@ class Judge:
         raise GraderError(
             f"judge returned unparseable output: {(reply.text or '')[:200]!r}"
         )
+
+
+def format_files(files: dict[str, str], limit: int = 20_000) -> str:
+    if not files:
+        return ""
+    body = "\n".join(f"--- {path} ---\n{text}" for path, text in files.items())
+    return f"\n<files_given_to_the_assistant>\n{body[:limit]}\n</files_given_to_the_assistant>\n"
 
 
 def default_rubric(spec: dict) -> str:
