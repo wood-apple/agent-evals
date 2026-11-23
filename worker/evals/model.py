@@ -52,6 +52,7 @@ class ModelResponse:
     cost_usd: float = 0.0
     latency_ms: int = 0
     retries: int = 0
+    rejected_tool_call: str | None = None
 
     def to_message(self) -> dict:
         message = {"role": "assistant", "content": self.text}
@@ -105,6 +106,12 @@ class LiteLLMModel:
                     ) from e
                 await self.sleep(backoff(attempt, self.base_delay_s))
                 continue
+            except litellm.BadRequestError as e:
+                if "tool_use_failed" in str(e):
+                    return ModelResponse(
+                        text=None, rejected_tool_call=str(e), retries=attempt
+                    )
+                raise ModelError(f"{type(e).__name__}: {e}") from e
             except openai.OpenAIError as e:
                 raise ModelError(f"{type(e).__name__}: {e}") from e
             latency_ms = int((time.monotonic() - started) * 1000)

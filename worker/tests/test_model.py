@@ -105,3 +105,17 @@ async def test_bad_request_is_not_retried(monkeypatch):
     with pytest.raises(ModelError):
         await LiteLLMModel("ollama/x", sleep=no_sleep).complete([], [], 0.0, 100)
     assert len(calls) == 1
+
+
+async def test_provider_rejected_tool_call_is_returned_not_raised(monkeypatch):
+    async def rejects(**kwargs):
+        raise litellm.BadRequestError(
+            'GroqException - {"error": {"code": "tool_use_failed"}}',
+            model="m",
+            llm_provider="groq",
+        )
+
+    monkeypatch.setattr(model_module.litellm, "acompletion", rejects)
+    response = await LiteLLMModel("groq/x", sleep=no_sleep).complete([], [], 0.0, 100)
+    assert "tool_use_failed" in response.rejected_tool_call
+    assert response.tool_calls == ()

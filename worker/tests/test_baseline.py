@@ -1,3 +1,5 @@
+import dataclasses
+
 import pytest
 from fakes import ScriptedModel, call, reply
 
@@ -129,3 +131,17 @@ async def test_skills_are_listed_and_loaded_on_demand(env):
     assert "IDs start with INV." not in model.requests[0][0]["content"]
     assert model.requests[1][-1]["content"] == "IDs start with INV."
     assert "skill_load" in types(trace)
+
+
+async def test_rejected_tool_call_is_fed_back_as_an_agent_error(env):
+    model = ScriptedModel(
+        dataclasses.replace(
+            reply(""), rejected_tool_call="tool_use_failed: missing 'path'"
+        ),
+        reply("done"),
+    )
+    result, trace = await run(model, env)
+    assert result.final_answer == "done"
+    assert trace.events[2]["error"] == "invalid_arguments"
+    assert model.requests[1][-1]["role"] == "user"
+    assert "rejected" in model.requests[1][-1]["content"]

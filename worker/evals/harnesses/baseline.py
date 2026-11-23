@@ -144,6 +144,9 @@ class Session:
                 latency_ms=response.latency_ms,
                 retries=response.retries,
             )
+            if response.rejected_tool_call:
+                messages.append(self.reject(index, step, response.rejected_tool_call))
+                continue
             messages.append(response.to_message())
             if not response.tool_calls:
                 return response.text or "", "done"
@@ -154,6 +157,22 @@ class Session:
                 )
         self.trace.add("stop", session=index, reason="max_steps")
         return "", "max_steps"
+
+    def reject(self, index: int, step: int, reason: str) -> dict:
+        self.trace.add(
+            "tool_result",
+            session=index,
+            step=step,
+            call_id=None,
+            name=None,
+            error="invalid_arguments",
+            result=reason,
+        )
+        return {
+            "role": "user",
+            "content": f"Your last tool call was rejected by the API: {reason[-600:]}\n"
+            "Call the tool again with arguments that match its schema.",
+        }
 
     def system_prompt(self, index: int) -> str:
         parts = [SYSTEM_PROMPT]
