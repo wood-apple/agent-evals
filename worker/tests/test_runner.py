@@ -5,7 +5,7 @@ import pytest
 
 from evals.config import Config, Settings
 from evals.experiment import Experiment
-from evals.graders import Judge
+from evals.graders import DEFAULT_JUDGE_MODEL, Judge
 from evals.harness import HarnessResult
 from evals.runner import Budget, ResumeError, run_experiment
 from evals.store import Store
@@ -208,3 +208,9 @@ async def test_trace_records_grading(store, tmp_path):
     assert grading["type"] == "grading"
     assert grading["files"] == ["in.txt", "leak.txt", "out.txt"]
     assert trace.grades[0]["reasoning"] == "all file checks passed"
+
+
+async def test_grading_event_records_the_judge_model(store, tmp_path):
+    await run(store, ScriptedHarness(solve), exp=experiment(1), tmp_path=tmp_path)
+    trial = store.get_trials("exp")[0]
+    assert store.get_trace(trial.id).events[-1]["judge_model"] == DEFAULT_JUDGE_MODEL

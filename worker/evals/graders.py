@@ -14,7 +14,7 @@ from evals.model import LiteLLMModel, Model
 from evals.sandbox import run_command
 from evals.task import Task
 
-DEFAULT_JUDGE_MODEL = "anthropic/claude-haiku-5-5"
+DEFAULT_JUDGE_MODEL = "groq/qwen/qwen3.8-27b"
 UNIT_TEST_TIMEOUT_S = 60
 ANSWER_LINE = re.compile(
     r"^[\s*_#>`-]*ANSWER[*_]*:[\s*_]*(.+?)\s*$", re.IGNORECASE | re.MULTILINE

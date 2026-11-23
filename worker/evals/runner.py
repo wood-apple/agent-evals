@@ -205,6 +205,7 @@ async def grade(
             p.relative_to(workdir).as_posix() for p in workdir.rglob("*") if p.is_file()
         ),
         cost_usd=judge.cost_usd,
+        judge_model=getattr(judge.model, "name", None),
     )
     return grades
 

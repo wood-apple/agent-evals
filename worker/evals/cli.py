@@ -171,6 +171,7 @@ def cmd_run(args) -> int:
         print(f"unknown tasks: {unknown}", file=sys.stderr)
         return 2
     config_ids = [c.id for c in configs]
+    judge = Judge()
     experiment = Experiment(
         id=experiment_id(
             args.name,
@@ -178,6 +179,7 @@ def cmd_run(args) -> int:
             config_ids,
             args.trials,
             args.seed,
+            judge.model.name,
         ),
         name=args.name,
         task_ids=tuple(selected),
@@ -214,6 +216,7 @@ def cmd_run(args) -> int:
             configs,
             skills_dir=ROOT / "skills",
             budget=Budget(args.budget),
+            judge=judge,
             concurrency=args.concurrency,
             on_trial=progress,
         )
