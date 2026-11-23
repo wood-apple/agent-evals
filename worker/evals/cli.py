@@ -191,7 +191,12 @@ def cmd_run(args) -> int:
     total = len(selected) * len(configs) * args.trials
     print(
         json.dumps(
-            {"event": "start", "experiment_id": experiment.id, "planned_trials": total}
+            {
+                "event": "start",
+                "experiment_id": experiment.id,
+                "planned_trials": total,
+                "judge_model": judge.model.name,
+            }
         ),
         flush=True,
     )
