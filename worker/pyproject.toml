@@ -4,7 +4,11 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "litellm>=1.110.2",
+    "python-dotenv>=1.2.4",
 ]
+
+[project.scripts]
+evals = "evals.cli:main"
 
 [dependency-groups]
 dev = [

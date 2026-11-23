@@ -55,6 +55,23 @@ class TrialTrace:
     grades: list[dict]
 
 
+def experiment_id(
+    name: str,
+    task_versions: dict[str, str],
+    config_ids: list[str],
+    n_trials: int,
+    seed: int,
+) -> str:
+    payload = {
+        "name": name,
+        "tasks": task_versions,
+        "config_ids": list(config_ids),
+        "n_trials": n_trials,
+        "seed": seed,
+    }
+    return "exp-" + content_hash(payload)
+
+
 def trial_id(experiment_id: str, task_id: str, config_id: str, trial_index: int) -> str:
     return content_hash(
         {
