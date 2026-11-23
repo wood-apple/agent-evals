@@ -324,7 +324,7 @@ def parse_judgement(text: str) -> tuple[int, str] | None:
     if not match:
         return None
     try:
-        data = json.loads(match.group(0))
+        data = json.loads(match.group(0), strict=False)
         score = int(data["score"])
     except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         return None

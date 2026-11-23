@@ -217,3 +217,13 @@ async def test_judge_sees_the_files_the_agent_was_given():
     )
     await grade_trial(task, "notes", None, Judge(model))
     assert "--- changes.json ---\n[1]" in model.prompts[0]
+
+
+def test_judge_output_with_raw_newlines_in_strings_is_accepted():
+    from evals.graders import parse_judgement
+
+    score, reasoning = parse_judgement(
+        '{"items": [{"item": 1, "met": false, "why": "line one\nline two"}], "score": 2}'
+    )
+    assert score == 2
+    assert "line two" in reasoning
