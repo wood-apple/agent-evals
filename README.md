@@ -32,7 +32,10 @@ Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and Node 22.
 cd worker && uv sync && cd ..
 cd api && npm ci && npm run build && cd ..
 cd ui && npm ci && npm run build && cd ..
-uv tool install hermes-agent==0.19.0      # only for the Hermes harness
+# only for the Hermes harness: Hermes no longer ships wheels, so install a pinned source checkout
+git clone https://github.com/NousResearch/hermes-agent.git ~/.local/share/hermes-agent-src
+(cd ~/.local/share/hermes-agent-src && git checkout 0f602c5f && uv sync --frozen --python 3.14 --extra anthropic --extra google)
+ln -s ~/.local/share/hermes-agent-src/.venv/bin/hermes ~/.local/bin/hermes
 node --disable-warning=ExperimentalWarning api/dist/main.js   # serves API + UI on :3000
 ```
 

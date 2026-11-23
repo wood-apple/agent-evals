@@ -21,7 +21,12 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/python \
     UV_TOOL_DIR=/opt/uv-tools \
     UV_TOOL_BIN_DIR=/usr/local/bin \
     UV_LINK_MODE=copy
-RUN uv tool install --python 3.13 hermes-agent==0.19.0
+ARG HERMES_COMMIT=0f602c5f6f18615632535251d62a2db74ce93b69
+RUN git clone https://github.com/NousResearch/hermes-agent.git /opt/hermes \
+    && cd /opt/hermes \
+    && git checkout "$HERMES_COMMIT" \
+    && uv sync --frozen --python 3.14 --extra anthropic --extra google \
+    && ln -s /opt/hermes/.venv/bin/hermes /usr/local/bin/hermes
 
 WORKDIR /app
 COPY worker/pyproject.toml worker/uv.lock worker/.python-version worker/
@@ -34,6 +39,9 @@ COPY configs/ configs/
 COPY judge-validation/ judge-validation/
 COPY --from=api /app/api /app/api
 COPY --from=ui /app/ui/dist /app/ui/dist
+
+RUN mkdir -p /app/results && chown -R node:node /app/results
+USER node
 
 ENV EVALS_ROOT=/app \
     EVALS_WORKER=/app/worker/.venv/bin/evals \

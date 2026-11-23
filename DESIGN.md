@@ -46,7 +46,7 @@ class Harness(Protocol):                      # worker/evals/harness.py
 
 ### The Hermes adapter
 
-Hermes Agent 0.19.0 runs one-shot (`hermes -z PROMPT --usage-file F`) with `HERMES_HOME` pointing at a directory created fresh for each trial. For each trial we:
+Hermes Agent, pinned to commit `0f602c5` (v0.23.3+984) and installed from source because Hermes no longer publishes wheels, runs one-shot (`hermes -z PROMPT --usage-file F`) with `HERMES_HOME` pointing at a directory created fresh for each trial. For each trial we:
 
 - write a `config.yaml` that sets `agent.max_turns` from `max_steps`, `memory.memory_enabled` from the memory setting, and turns the user-profile feature off;
 - copy only the config's skills into `$HERMES_HOME/skills`;
@@ -172,10 +172,12 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
 - **Judge bias.** The judge is validated on 32 AI-drafted labels, not human ones. An LLM judge from the same family as the agent may favour its own style. Use a judge from another provider (the default judge is not the experiment's agent model).
 - **Contamination.** Roman numerals, binary search, primes and slugify are textbook problems that are probably in training data, so they test recall as much as agent skill. The ACME skill tasks and their conventions were invented for this set and are contamination-free.
 - **Harness quirks.**
-  - Hermes ignores our `temperature` and `max_tokens` settings (0.19.0 has no per-run setting for them).
+  - Hermes ignores our `temperature` and `max_tokens` settings (there is no per-run setting for them).
   - Hermes uses about 10× the input tokens of the baseline because of its large system prompt.
   - Hermes's tools can reach outside the sandbox directory. Run it inside Docker.
-  - Hermes guesses the Anthropic auth mode from the key prefix: only `sk-ant-api…` Console keys are billed as API usage. The adapter refuses other key types up front.
+  - Hermes guesses the Anthropic auth mode from the key prefix. Release 0.19.0 treated anything but `sk-ant-api…` as a Claude Code subscription token; the pinned commit also accepts the newer `sk-ant-usr/svc/admin` Console keys. The adapter refuses other key types up front.
+  - Hermes refuses to run as root in a container, so the image runs everything as the unprivileged `node` user.
+  - The pinned Hermes installs provider SDKs on first use, per home directory. Since every trial gets a fresh home, the SDKs (`anthropic`, `google` extras) are installed into Hermes's own environment instead.
   - Hermes's token counts include cache reads, which we price at the full input rate, so its cost is an upper bound.
 - **Sandboxing.** Agent code runs as a subprocess without a seccomp or container boundary per trial. That's fine on a laptop or in the compose container, but not for untrusted tasks.
 - **Rate limits.** Free tiers (Groq at 8k tokens per minute, Gemini at 5 requests per minute) shape what can be run. Hermes can't run on Groq's free tier at all, because a single request exceeds the per-minute token limit. Rate-limited trials are `error`, not failures, but a config that hits limits more often is under-sampled until it is resumed.
