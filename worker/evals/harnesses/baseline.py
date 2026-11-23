@@ -105,12 +105,15 @@ class Session:
         return names
 
     async def run(self, index: int, prompt: str) -> tuple[str, str]:
-        system = self.system_prompt(index)
+        notes = self.read_memory()
+        system = self.system_prompt(notes)
         messages = [
             {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ]
         self.trace.add("session_start", session=index, system=system, prompt=prompt)
+        if notes is not None:
+            self.trace.add("memory_read", session=index, content=notes)
         for step in range(self.settings.max_steps):
             if self.trace.total_tokens >= self.settings.token_budget:
                 self.trace.add("stop", session=index, reason="token_budget")
@@ -174,7 +177,12 @@ class Session:
             "Call the tool again with arguments that match its schema.",
         }
 
-    def system_prompt(self, index: int) -> str:
+    def read_memory(self) -> str | None:
+        if not self.memory_path:
+            return None
+        return self.memory_path.read_text() if self.memory_path.exists() else ""
+
+    def system_prompt(self, notes: str | None) -> str:
         parts = [SYSTEM_PROMPT]
         if self.skills:
             listing = "\n".join(
@@ -183,9 +191,7 @@ class Session:
             parts.append(
                 f"Skills you can load with read_skill when relevant:\n{listing}"
             )
-        if self.memory_path:
-            notes = self.memory_path.read_text() if self.memory_path.exists() else ""
-            self.trace.add("memory_read", session=index, content=notes)
+        if notes is not None:
             parts.append(
                 "Use the remember tool to save facts that may matter in later sessions.\n"
                 f"Your memory from earlier sessions:\n{notes or '(empty)'}"
