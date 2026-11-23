@@ -180,6 +180,7 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
 - **Rate limits.** Free tiers (Groq at 8k tokens per minute, Gemini at 5 requests per minute) shape what can be run. Hermes can't run on Groq's free tier at all, because a single request exceeds the per-minute token limit. Rate-limited trials are `error`, not failures, but a config that hits limits more often is under-sampled until it is resumed.
 - **Statistics.** McNemar treats trial pairs as independent, but trials of the same task are correlated, so its p-value is optimistic. That's why the verdict also requires the task-level bootstrap CI to exclude 0.
 - **Memory tasks** test recall within a trial across sessions. They don't test long-horizon memory quality or memory pollution.
+- **SQLite across Docker's VM boundary.** WAL needs shared memory between readers and writers, so a worker on the host and the API in a container must not share one live database. Within one container, or entirely on the host, it's fine. A server database (Postgres) would remove this limit, and the store is one small class.
 - **Single machine.** The runner is a single process (asyncio). Concurrency is limited by provider limits long before CPU.
 
 ## Assumptions
