@@ -5,7 +5,8 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from evals.graders import Judge
+from evals.graders import GraderError, Judge
+from evals.model import ModelError
 from evals.task import Task
 
 
@@ -29,11 +30,16 @@ async def validate(
 ) -> dict:
     semaphore = asyncio.Semaphore(concurrency)
 
-    async def judge_one(label: dict) -> Item:
+    async def judge_one(label: dict) -> Item | str:
         task = tasks[label["task_id"]]
         spec = next(g for g in task.graders if g["type"] == "llm_judge")
         async with semaphore:
-            passed, score, reasoning = await judge.grade(task, spec, label["response"])
+            try:
+                passed, score, reasoning = await judge.grade(
+                    task, spec, label["response"]
+                )
+            except (ModelError, GraderError) as e:
+                return f"{label['id']}: {e}"[:300]
         return Item(
             id=label["id"],
             task_id=task.id,
@@ -44,8 +50,9 @@ async def validate(
             reasoning=reasoning,
         )
 
-    items = await asyncio.gather(*(judge_one(label) for label in labels))
-    return report(items, judge)
+    results = await asyncio.gather(*(judge_one(label) for label in labels))
+    items = [r for r in results if isinstance(r, Item)]
+    return report(items, judge) | {"failed": [r for r in results if isinstance(r, str)]}
 
 
 def report(items: list[Item], judge: Judge) -> dict:

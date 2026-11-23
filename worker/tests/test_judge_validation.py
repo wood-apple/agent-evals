@@ -42,3 +42,22 @@ async def test_validate_reports_disagreements():
     assert result["agreement"] == pytest.approx(2 / 3)
     assert result["confusion"]["judge_too_lenient"] == 1
     assert [d["id"] for d in result["disagreements"]] == ["3"]
+
+
+class FlakyJudge(KeywordJudge):
+    async def grade(self, task, spec, response):
+        if response == "boom":
+            from evals.model import ModelError
+
+            raise ModelError("rate limited")
+        return await super().grade(task, spec, response)
+
+
+async def test_judge_failures_are_reported_not_fatal():
+    labels = [
+        {"id": "1", "task_id": "t", "response": "good", "human_pass": True},
+        {"id": "2", "task_id": "t", "response": "boom", "human_pass": False},
+    ]
+    result = await validate(labels, {"t": TASK}, FlakyJudge())
+    assert result["n"] == 1
+    assert result["failed"] == ["2: rate limited"]

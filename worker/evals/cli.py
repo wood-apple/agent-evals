@@ -284,13 +284,17 @@ def cmd_export(args) -> None:
 
 def cmd_judge_validate(args) -> None:
     tasks = {t.id: t for t in load_tasks(ROOT / "tasks")}
-    report = asyncio.run(validate(load_labels(args.labels), tasks, Judge()))
+    report = asyncio.run(
+        validate(load_labels(args.labels), tasks, Judge(), args.concurrency)
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2))
     print(
         f"judge {report['judge_model']}: agreement {report['agreement']:.0%}, "
         f"kappa {report['kappa']:.2f}, confusion {report['confusion']}, cost ${report['cost_usd']:.4f}"
     )
+    for failure in report["failed"]:
+        print(f"  not judged: {failure}")
     for item in report["disagreements"]:
         print(
             f"  {item['id']}: human {'pass' if item['human_pass'] else 'fail'}, judge {item['judge_score']}/5"
