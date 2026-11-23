@@ -1,0 +1,12 @@
+{
+  "label": "baseline \u00b7 qwen3:8b (local, thinking off, no skills)",
+  "harness": "baseline",
+  "model": "ollama_chat/qwen3:8b",
+  "settings": {
+    "temperature": 0.0,
+    "max_steps": 15,
+    "memory": true,
+    "skills": [],
+    "thinking": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "label": "baseline \u00b7 haiku \u00b7 no skills (A/A copy)",
+  "harness": "baseline",
+  "model": "anthropic/claude-haiku-5-5",
+  "settings": {
+    "temperature": 0.0,
+    "max_steps": 15,
+    "memory": true,
+    "skills": [],
+    "token_budget": 300001
+  }
+}
