@@ -126,7 +126,8 @@ function NewExperimentForm() {
         </label>
       </div>
       <p className="muted">
-        {taskCount} tasks × {selected.length} configs × {trials} trials = {taskCount * selected.length * trials} runs.
+        {tasks.data ? `${taskCount} tasks` : 'Loading tasks…'} × {selected.length} configs × {trials} trials ={' '}
+        {taskCount * selected.length * trials} runs.
         The run stops starting new trials once the budget is spent.
       </p>
       {error && <p className="error">{error}</p>}
