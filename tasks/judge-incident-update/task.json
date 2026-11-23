@@ -21,9 +21,6 @@
       "type": "regex",
       "label": "no internal identifiers",
       "required": false,
-      "patterns": [
-        "."
-      ],
       "forbidden": [
         "api-gw-02",
         "internal\\.acme",
