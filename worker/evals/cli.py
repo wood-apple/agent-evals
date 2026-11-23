@@ -97,6 +97,7 @@ def parser() -> argparse.ArgumentParser:
     judge.add_argument(
         "--out", type=Path, default=ROOT / "results/judge-validation.json"
     )
+    judge.add_argument("--concurrency", type=int, default=1)
     judge.set_defaults(handler=cmd_judge_validate)
     return p
 
