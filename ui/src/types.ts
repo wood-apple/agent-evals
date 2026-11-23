@@ -50,6 +50,7 @@ export interface Experiment {
   finished?: number;
   errors?: number;
   cost_usd?: number;
+  last_finished_at?: string | null;
 }
 
 export interface ExperimentDetail extends Experiment {

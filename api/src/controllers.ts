@@ -76,7 +76,8 @@ export class ExperimentsController {
       .all(
         `select e.*, count(t.id) as finished,
                 coalesce(sum(t.status = 'error'), 0) as errors,
-                coalesce(sum(t.cost_usd), 0) as cost_usd
+                coalesce(sum(t.cost_usd), 0) as cost_usd,
+                max(t.finished_at) as last_finished_at
          from experiments e left join trials t on t.experiment_id = e.id
          group by e.id order by e.created_at desc`,
       )
@@ -92,7 +93,8 @@ export class ExperimentsController {
       `select * from trials where experiment_id = ? order by task_id, trial_index, config_id`,
       id,
     );
-    return { ...experiment, configs, trials };
+    const last = trials.map((t) => String(t.finished_at)).sort().at(-1) ?? null;
+    return { ...experiment, last_finished_at: last, configs, trials };
   }
 
   @Get(':id/compare')

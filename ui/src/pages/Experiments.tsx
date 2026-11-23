@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { configName, usd } from '../format';
+import { configName, runDuration, usd } from '../format';
 import { href } from '../router';
 import { useData } from '../useData';
 
@@ -18,6 +18,7 @@ export function ExperimentsPage() {
             <th>Progress</th>
             <th>Errors</th>
             <th>Agent cost</th>
+            <th>Duration</th>
             <th>Created</th>
           </tr>
         </thead>
@@ -37,6 +38,7 @@ export function ExperimentsPage() {
               </td>
               <td>{e.errors}</td>
               <td>{usd(e.cost_usd)}</td>
+              <td>{runDuration(e)}</td>
               <td className="muted">{new Date(e.created_at).toLocaleString()}</td>
             </tr>
           ))}

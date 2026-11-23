@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { CiBar } from '../components/CiBar';
 import { TrialGrid } from '../components/TrialGrid';
-import { configName, pct, pp, seconds, tokens, usd } from '../format';
+import { configName, pct, pp, runDuration, seconds, tokens, usd } from '../format';
 import { useData } from '../useData';
 import type { Comparison, Config, ConfigSummary } from '../types';
 
@@ -29,7 +29,7 @@ export function ExperimentPage({ id }: { id: string }) {
       <p className="muted mono">
         {e.id} · {e.task_ids.length} tasks × {e.config_ids.length} configs × {e.n_trials} trials ·{' '}
         <span className={`badge status-${e.running ? 'running' : e.status}`}>{e.running ? 'running' : e.status}</span> ·{' '}
-        {finished} / {e.planned} done · <a href={api.exportUrl(id, 'json')}>export JSON</a> ·{' '}
+        {finished} / {e.planned} done · ran {runDuration(e)} · <a href={api.exportUrl(id, 'json')}>export JSON</a> ·{' '}
         <a href={api.exportUrl(id, 'csv')}>export CSV</a>
       </p>
       <progress value={finished} max={e.planned} className="wide" />

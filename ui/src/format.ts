@@ -22,6 +22,26 @@ export function tokens(value: number | null | undefined): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(Math.round(value));
 }
 
+export function duration(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+export function runDuration(
+  experiment: { created_at: string; last_finished_at?: string | null; running: boolean; status: string },
+  now = Date.now(),
+): string {
+  const start = Date.parse(experiment.created_at);
+  const live = experiment.running || experiment.status === 'running';
+  const end = live ? now : experiment.last_finished_at ? Date.parse(experiment.last_finished_at) : start;
+  return `${duration(end - start)}${live ? ' so far' : ''}`;
+}
+
 export function configName(config: { label: string; id: string } | undefined): string {
   if (!config) return '?';
   return config.label || config.id;
