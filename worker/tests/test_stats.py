@@ -117,3 +117,10 @@ def test_config_summary_reports_cost_and_errors():
 
 def test_no_pairs_yet():
     assert compare([], "A", "B")["verdict"] == "no paired trials yet"
+
+
+def test_concentrated_effect_is_not_called_noise():
+    text = verdict((0.0, 0.216), 1e-4, 0.096)
+    assert text.startswith("B is better on the tasks that differ")
+    assert "includes 0" in text
+    assert verdict((-0.2, 0.0), 1e-4, -0.1).startswith("A is better on the tasks")

@@ -96,12 +96,18 @@ def fisher_exact_p(pass_a: int, n_a: int, pass_b: int, n_b: int) -> float:
     )
 
 
-def verdict(ci: tuple[float, float], p_value: float) -> str:
+def verdict(ci: tuple[float, float], p_value: float, delta: float = 0.0) -> str:
     low, high = ci
     if low > 0 and p_value < ALPHA:
         return "B is better"
     if high < 0 and p_value < ALPHA:
         return "A is better"
+    if p_value < ALPHA and delta != 0:
+        winner = "B" if delta > 0 else "A"
+        return (
+            f"{winner} is better on the tasks that differ, but the effect is concentrated in "
+            "a few tasks, so the task-level interval includes 0; add tasks that exercise it"
+        )
     if low > 0 or high < 0:
         return "probably different, but the tests disagree; run more trials"
     return "no detectable difference (within noise)"
@@ -153,7 +159,7 @@ def compare(
             "only_b_passed": only_b,
             "p_value": p_value,
         },
-        "verdict": verdict(ci, p_value),
+        "verdict": verdict(ci, p_value, mean_delta(deltas)),
         "detectable_delta": half_width,
         "per_task": task_rows(pairs),
     }
