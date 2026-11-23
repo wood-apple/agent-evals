@@ -46,7 +46,7 @@ class Harness(Protocol):                      # worker/evals/harness.py
 
 ### The Hermes adapter
 
-Hermes Agent, pinned to commit `0f602c5` (v0.23.3+984) and installed from source because Hermes no longer publishes wheels, runs one-shot (`hermes -z PROMPT --usage-file F`) with `HERMES_HOME` pointing at a directory created fresh for each trial. For each trial we:
+Hermes Agent, pinned to commit `0f602c5` (v0.23.3+984) and installed from source because Hermes no longer publishes wheels, runs one-shot (`hermes -z PROMPT --usage-file F`) with `HERMES_HOME` pointing at a fresh directory. With memory on, the sessions of a trial share one home. With memory off, each session gets its own home, which is deleted before the next session starts; otherwise Hermes's transcript store and logs let a later session read an earlier one. For each trial we:
 
 - write a `config.yaml` that sets `agent.max_turns` from `max_steps`, `memory.memory_enabled` from the memory setting, and turns the user-profile feature off;
 - copy only the config's skills into `$HERMES_HOME/skills`;
@@ -76,6 +76,7 @@ The line between the two is a judgement call. A malformed tool call that Groq re
 
 - **Each trial gets a fresh temporary directory:** `work/`, seeded with the task fixtures, and `state/`, the harness's private state (baseline memory file, Hermes home). Both are deleted afterwards. Memory carries across the sessions of one trial and never across trials (`test_runner.py::test_runs_every_task_config_and_trial` asserts that each trial sees only its own fixtures).
 - **Agent code runs in a subprocess** with the sandbox as working directory and HOME, a timeout, and an environment stripped of API keys. Paths in file tools can't escape the sandbox. This is isolation for correctness, not a security boundary (see known limits). Docker provides the outer boundary.
+- **In Docker, agent code runs as a separate `agent` user.** Hermes, `run_python` and the hidden unit tests run via `sudo -u agent` with a clean environment. The app (`/app`, including tasks and results) isn't readable by that user, the trials directory can't be listed, and each trial directory is shared only between the worker and `agent`. Run on the host without Docker, everything runs as you and only the path checks apply.
 - **Hidden tests are copied in at grading time,** into a copy of the work directory, so the agent can't read or edit them.
 - **Reproducing a result:** the config id fixes harness, model and settings, the task version fixes the task, and the Hermes version is pinned. LLM sampling is still non-deterministic, which is why we run N trials and report intervals instead of single numbers.
 
@@ -181,6 +182,9 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
   - Hermes's token counts include cache reads, which we price at the full input rate, so its cost is an upper bound.
 - **Sandboxing.** Agent code runs as a subprocess without a seccomp or container boundary per trial. That's fine on a laptop or in the compose container, but not for untrusted tasks.
 - **Rate limits.** Free tiers (Groq at 8k tokens per minute, Gemini at 5 requests per minute) shape what can be run. Hermes can't run on Groq's free tier at all, because a single request exceeds the per-minute token limit. Rate-limited trials are `error`, not failures, but a config that hits limits more often is under-sampled until it is resumed.
+- **Rate-limit timeouts are coarse.** A trial that times out after *any* wait on provider rate limits or a busy local server is an infrastructure error, not an agent failure. That's right for Groq's free tier but too generous for a slow local model: in experiment 3, three qwen trials that were probably going to fail were excluded instead. A better rule would compare the wait with the timeout.
+- **Latency depends on what else is running.** Experiments 2 and 3 ran at the same time on one laptop, so their latencies are comparable within each experiment but not across them.
+- **Local models run with thinking off.** With thinking on, qwen3:8b was too slow for the task timeouts on a laptop. It's a versioned setting, so a thinking-on run would be a separate config.
 - **Statistics.** McNemar treats trial pairs as independent, but trials of the same task are correlated, so its p-value is optimistic. That's why the verdict also requires the task-level bootstrap CI to exclude 0.
 - **Memory tasks** test recall within a trial across sessions. They don't test long-horizon memory quality or memory pollution.
 - **SQLite across Docker's VM boundary.** WAL needs shared memory between readers and writers, so a worker on the host and the API in a container must not share one live database. Within one container, or entirely on the host, it's fine. A server database (Postgres) would remove this limit, and the store is one small class.

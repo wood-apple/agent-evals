@@ -9,7 +9,7 @@ Evaluate any agent harness (X) running any model (Y) and answer one question wit
 - Paired comparison: bootstrap confidence interval, McNemar test, per-task deltas with a noise flag, plus cost, latency and tokens.
 - A trajectory view for every trial, and failure categories.
 
-See [DESIGN.md](DESIGN.md) for how it works and why, [EXPERIMENT.md](EXPERIMENT.md) for the real experiment, and [Known limits](DESIGN.md#known-limits).
+See [DESIGN.md](DESIGN.md) for how it works and why, [EXPERIMENT.md](EXPERIMENT.md) for the three experiments and what they found, and [Known limits](DESIGN.md#known-limits).
 
 ## Run it
 
