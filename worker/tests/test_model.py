@@ -4,7 +4,7 @@ import litellm
 import pytest
 
 from evals import model as model_module
-from evals.model import LiteLLMModel, ModelError, parse_response
+from evals.model import LiteLLMModel, ModelError, parse_response, retry_delay
 
 
 def fake_response(content=None, tool_calls=(), prompt_tokens=10, completion_tokens=5):
@@ -119,3 +119,10 @@ async def test_provider_rejected_tool_call_is_returned_not_raised(monkeypatch):
     response = await LiteLLMModel("groq/x", sleep=no_sleep).complete([], [], 0.0, 100)
     assert "tool_use_failed" in response.rejected_tool_call
     assert response.tool_calls == ()
+
+
+def test_retry_delay_honours_the_provider_hint():
+    error = Exception("Rate limit reached. Please try again in 33.77s. Upgrade")
+    assert retry_delay(error, 0, 1.0) == pytest.approx(34.77)
+    assert retry_delay(Exception("try again in 1m2.5s"), 0, 1.0) == pytest.approx(63.5)
+    assert 2 <= retry_delay(Exception("busy"), 1, 2.0) <= 6

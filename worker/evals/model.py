@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import random
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -76,8 +77,8 @@ class Model(Protocol):
 @dataclass
 class LiteLLMModel:
     name: str
-    max_attempts: int = 5
-    base_delay_s: float = 2.0
+    max_attempts: int = 6
+    base_delay_s: float = 4.0
     request_timeout_s: float = 120.0
     sleep: object = field(default=asyncio.sleep, repr=False)
 
@@ -104,7 +105,7 @@ class LiteLLMModel:
                     raise ModelError(
                         f"{type(e).__name__} after {attempt + 1} attempts: {e}"
                     ) from e
-                await self.sleep(backoff(attempt, self.base_delay_s))
+                await self.sleep(retry_delay(e, attempt, self.base_delay_s))
                 continue
             except litellm.BadRequestError as e:
                 if "tool_use_failed" in str(e):
@@ -119,8 +120,16 @@ class LiteLLMModel:
         raise AssertionError("unreachable")
 
 
-def backoff(attempt: int, base_delay_s: float) -> float:
-    return base_delay_s * 2**attempt * random.uniform(0.5, 1.5)
+RETRY_HINT = re.compile(r"try again in (?:(\d+)m)?(\d+(?:\.\d+)?)s", re.IGNORECASE)
+
+
+def retry_delay(error: Exception, attempt: int, base_delay_s: float) -> float:
+    jittered = base_delay_s * 2**attempt * random.uniform(0.5, 1.5)
+    hint = RETRY_HINT.search(str(error))
+    if hint:
+        minutes, seconds = hint.groups()
+        return max(jittered, int(minutes or 0) * 60 + float(seconds) + 1)
+    return jittered
 
 
 def parse_response(
