@@ -24,6 +24,7 @@ RETRYABLE = (
     litellm.InternalServerError,
     litellm.ServiceUnavailableError,
 )
+PROVIDER_BUSY = (litellm.RateLimitError, litellm.ServiceUnavailableError)
 
 
 rate_limit_wait_s: contextvars.ContextVar[list[float] | None] = contextvars.ContextVar(
@@ -116,7 +117,7 @@ class LiteLLMModel:
                     ) from e
                 delay = retry_delay(e, attempt, self.base_delay_s)
                 waits = rate_limit_wait_s.get()
-                if waits is not None:
+                if waits is not None and isinstance(e, PROVIDER_BUSY):
                     waits.append(delay)
                 await self.sleep(delay)
                 continue

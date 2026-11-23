@@ -152,3 +152,31 @@ def test_thinking_switch_is_passed_to_ollama_only():
     }
     assert provider_options("ollama_chat/qwen3:8b") == {"num_ctx": 32_768}
     assert provider_options("anthropic/claude-haiku-5-5", False) == {}
+
+
+@pytest.mark.parametrize(
+    ("error", "counted"),
+    [
+        (litellm.RateLimitError("slow down", llm_provider="x", model="m"), True),
+        (litellm.Timeout("slow model", llm_provider="x", model="m"), False),
+    ],
+)
+async def test_only_provider_backpressure_counts_as_rate_limit_wait(
+    monkeypatch, error, counted
+):
+    calls = []
+
+    async def flaky(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise error
+        return fake_response("ok")
+
+    monkeypatch.setattr(model_module.litellm, "acompletion", flaky)
+    waits = []
+    token = model_module.rate_limit_wait_s.set(waits)
+    try:
+        await LiteLLMModel("ollama/x", sleep=no_sleep).complete([], [], 0.0, 100)
+    finally:
+        model_module.rate_limit_wait_s.reset(token)
+    assert bool(waits) is counted

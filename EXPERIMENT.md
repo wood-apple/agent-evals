@@ -172,7 +172,7 @@ All 25 tasks, N = 3, so 150 trials, at concurrency 1 because Ollama serves one r
 | B: qwen3:8b local | 33.3% | $0 | 10.9 s | 5,404 / 205 | 3 |
 
 - **Δ pass rate: −63.9 pp, 95% CI [−81.9, −44.4].** McNemar: 46 pairs passed only with Haiku and 0 only with qwen. **Verdict: A is better.**
-- **72 pairs over 24 tasks, not 75 over 25.** All 3 qwen trials of `log-503-count` hit the timeout after reading a large log file. Because they had also waited on Ollama's queue, the runner classed them as infrastructure errors and left them out. That favours qwen slightly; see known limits.
+- **72 pairs over 24 tasks, not 75 over 25.** All 3 qwen trials of `log-503-count` hit the timeout after reading a large log file. A single request took longer than the 2-minute request limit, and the runner counted that retry as waiting on a rate limit, so the trials were classed as infrastructure errors and left out. That favours qwen slightly. It was a bug: only real 429 and 503 responses count as rate-limit waits now, and a slow model's timeouts count against it.
 - With N = 3, no single task reaches p < 0.05 (the best possible is p = 0.10), so every per-task row says "noise". The overall difference is clear because it is the same across 16 tasks.
 
 ### Why qwen fails
