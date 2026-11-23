@@ -1,0 +1,136 @@
+import { useState } from 'react';
+import { api } from '../api';
+import { configName, usd } from '../format';
+import { href } from '../router';
+import { useData } from '../useData';
+
+export function ExperimentsPage() {
+  const experiments = useData(api.experiments, [], 5000);
+  return (
+    <>
+      <h2>Experiments</h2>
+      {experiments.error && <p className="error">{experiments.error}</p>}
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Errors</th>
+            <th>Agent cost</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(experiments.data ?? []).map((e) => (
+            <tr key={e.id}>
+              <td>
+                <a href={href('experiment', e.id)}>{e.name}</a>
+                <div className="muted mono">{e.id}</div>
+              </td>
+              <td>
+                <span className={`badge status-${e.running ? 'running' : e.status}`}>{e.running ? 'running' : e.status}</span>
+              </td>
+              <td>
+                {e.finished} / {e.planned}
+                <progress value={e.finished} max={e.planned} />
+              </td>
+              <td>{e.errors}</td>
+              <td>{usd(e.cost_usd)}</td>
+              <td className="muted">{new Date(e.created_at).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {experiments.data?.length === 0 && <p className="muted">No experiments yet.</p>}
+      <NewExperimentForm />
+    </>
+  );
+}
+
+function NewExperimentForm() {
+  const configs = useData(api.configs, []);
+  const tasks = useData(api.tasks, []);
+  const [name, setName] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [category, setCategory] = useState('');
+  const [trials, setTrials] = useState(3);
+  const [budget, setBudget] = useState(2);
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const categories = [...new Set((tasks.data ?? []).map((t) => t.category))].sort();
+  const taskCount = (tasks.data ?? []).filter((t) => !category || t.category === category).length;
+
+  const toggle = (id: string) =>
+    setSelected((current) => (current.includes(id) ? current.filter((c) => c !== id) : [...current, id]));
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(undefined);
+    try {
+      const { experimentId } = await api.startExperiment({
+        name,
+        configIds: selected,
+        category: category || undefined,
+        trials,
+        budgetUsd: budget,
+      });
+      window.location.hash = href('experiment', experimentId);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="card" onSubmit={submit}>
+      <h3>New experiment</h3>
+      <p className="muted">
+        Pick two configs that differ in one thing. The first one you pick is the baseline (A).
+      </p>
+      <label>
+        Name <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="memory on vs off" />
+      </label>
+      <fieldset>
+        <legend>Configs</legend>
+        {(configs.data ?? []).map((c) => (
+          <label key={c.id} className="check">
+            <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
+            {selected.includes(c.id) && <span className="badge">{String.fromCharCode(65 + selected.indexOf(c.id))}</span>}
+            {configName(c)} <span className="muted mono">{c.harness} · {c.model}</span>
+          </label>
+        ))}
+        {configs.data?.length === 0 && (
+          <p className="muted">
+            No configs yet. <a href={href('configs')}>Define one first.</a>
+          </p>
+        )}
+      </fieldset>
+      <div className="row">
+        <label>
+          Tasks
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">all categories</option>
+            {categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Trials per task <input type="number" min={1} max={50} value={trials} onChange={(e) => setTrials(Number(e.target.value))} />
+        </label>
+        <label>
+          Budget (USD) <input type="number" min={0.01} step={0.5} value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
+        </label>
+      </div>
+      <p className="muted">
+        {taskCount} tasks × {selected.length} configs × {trials} trials = {taskCount * selected.length * trials} runs.
+        The run stops starting new trials once the budget is spent.
+      </p>
+      {error && <p className="error">{error}</p>}
+      <button disabled={busy || selected.length === 0 || !name}>{busy ? 'Starting…' : 'Run'}</button>
+    </form>
+  );
+}
