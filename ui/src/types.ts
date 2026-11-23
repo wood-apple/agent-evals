@@ -6,6 +6,7 @@ export interface Settings {
   memory: boolean;
   skills: string[];
   tools: string[];
+  thinking: boolean | null;
 }
 
 export interface Config {

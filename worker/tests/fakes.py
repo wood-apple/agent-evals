@@ -30,7 +30,8 @@ class ScriptedModel:
         self.responses = list(responses)
         self.requests: list[list[dict]] = []
 
-    async def complete(self, messages, tools, temperature, max_tokens):
+    async def complete(self, messages, tools, temperature, max_tokens, thinking=None):
+        self.thinking = thinking
         self.requests.append([dict(m) for m in messages])
         if not self.responses:
             return reply("out of script")

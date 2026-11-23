@@ -59,7 +59,7 @@ Hermes Agent, pinned to commit `0f602c5` (v0.23.3+984) and installed from source
 | Entity | Identity | Notes |
 |---|---|---|
 | **Task** | `id`; `version` = hash of prompts, graders, fixtures, hidden tests, timeout and expected tools | Title and category edits don't change the version. Any change to what the agent sees or how it's graded does. |
-| **Config** | `id` = hash of harness, model and settings (temperature, max steps, max tokens, token budget, memory, skills, tools) | The label is excluded, so renaming doesn't fork results. Skills and tools are sorted so order doesn't matter. |
+| **Config** | `id` = hash of harness, model and settings (temperature, max steps, max tokens, token budget, memory, skills, tools, thinking) | The label is excluded, so renaming doesn't fork results. Skills and tools are sorted so order doesn't matter. Settings added later default to unset and unset settings are left out of the hash, so adding a setting never changes the ids of existing configs (a test pins a real pre-existing id). |
 | **Experiment** | `id` = hash of name, task ids and versions, config ids, N and seed | Re-running the same request resumes it. A different seed starts an independent replicate. |
 | **Trial** | `id` = hash of experiment, task, config and trial index | Status, pass/fail, score, tokens, cost, latency, error, failure category. A unique constraint plus `insert or ignore` makes saves idempotent. |
 | **Trace** | one per trial | Events (session start, model responses with tool calls, tool results, memory reads and writes, skill loads, stops, errors, grading) and grades with reasoning. |
@@ -172,7 +172,7 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
 - **Judge bias.** The judge is validated on 32 AI-drafted labels, not human ones. An LLM judge from the same family as the agent may favour its own style. Use a judge from another provider (the default judge is not the experiment's agent model).
 - **Contamination.** Roman numerals, binary search, primes and slugify are textbook problems that are probably in training data, so they test recall as much as agent skill. The ACME skill tasks and their conventions were invented for this set and are contamination-free.
 - **Harness quirks.**
-  - Hermes ignores our `temperature` and `max_tokens` settings (there is no per-run setting for them).
+  - Hermes ignores our `temperature`, `max_tokens` and `thinking` settings (there is no per-run setting for them). The `thinking` switch is currently applied only to Ollama models.
   - Hermes uses about 10× the input tokens of the baseline because of its large system prompt.
   - Hermes's tools can reach outside the sandbox directory. Run it inside Docker.
   - Hermes guesses the Anthropic auth mode from the key prefix. Release 0.19.0 treated anything but `sk-ant-api…` as a Claude Code subscription token; the pinned commit also accepts the newer `sk-ant-usr/svc/admin` Console keys. The adapter refuses other key types up front.

@@ -77,6 +77,7 @@ class Model(Protocol):
         tools: list[dict],
         temperature: float,
         max_tokens: int,
+        thinking: bool | None = None,
     ) -> ModelResponse: ...
 
 
@@ -94,6 +95,7 @@ class LiteLLMModel:
         tools: list[dict],
         temperature: float,
         max_tokens: int,
+        thinking: bool | None = None,
     ) -> ModelResponse:
         for attempt in range(self.max_attempts):
             started = time.monotonic()
@@ -105,7 +107,7 @@ class LiteLLMModel:
                     temperature=temperature,
                     max_tokens=max_tokens,
                     timeout=self.request_timeout_s,
-                    **provider_options(self.name),
+                    **provider_options(self.name, thinking),
                 )
             except RETRYABLE as e:
                 if attempt == self.max_attempts - 1:
@@ -137,10 +139,13 @@ RETRY_HINT = re.compile(r"try again in (?:(\d+)m)?(\d+(?:\.\d+)?)s", re.IGNORECA
 OLLAMA_CONTEXT_TOKENS = 32_768
 
 
-def provider_options(model: str) -> dict:
-    if model.startswith(("ollama/", "ollama_chat/")):
-        return {"num_ctx": OLLAMA_CONTEXT_TOKENS}
-    return {}
+def provider_options(model: str, thinking: bool | None = None) -> dict:
+    if not model.startswith(("ollama/", "ollama_chat/")):
+        return {}
+    options: dict = {"num_ctx": OLLAMA_CONTEXT_TOKENS}
+    if thinking is not None:
+        options["think"] = thinking
+    return options
 
 
 def retry_delay(error: Exception, attempt: int, base_delay_s: float) -> float:

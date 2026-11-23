@@ -51,3 +51,25 @@ def test_list_inputs_are_stored_as_tuples():
     assert config.settings.skills == ("a", "b")
     assert config.settings.tools == ("A", "B")
     hash(config)
+
+
+def test_unset_new_settings_do_not_change_existing_ids():
+    assert make_config().id == make_config(thinking=None).id
+    assert make_config().id != make_config(thinking=False).id
+    assert make_config(thinking=False).id != make_config(thinking=True).id
+
+
+def test_ids_saved_before_new_settings_existed_still_match():
+    skills = (
+        "acme-finance",
+        "acme-release-notes",
+        "acme-shipping",
+        "git-commit-style",
+        "qlog-format",
+    )
+    config = Config(
+        harness="baseline",
+        model="anthropic/claude-haiku-5-5",
+        settings=Settings(temperature=0.0, max_steps=15, memory=True, skills=skills),
+    )
+    assert config.id == "c0fc63b55ad7"

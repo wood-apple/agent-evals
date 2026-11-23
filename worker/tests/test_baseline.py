@@ -145,3 +145,9 @@ async def test_rejected_tool_call_is_fed_back_as_an_agent_error(env):
     assert trace.events[2]["error"] == "invalid_arguments"
     assert model.requests[1][-1]["role"] == "user"
     assert "rejected" in model.requests[1][-1]["content"]
+
+
+async def test_thinking_setting_reaches_the_model(env):
+    model = ScriptedModel(reply("done"))
+    await run(model, env, thinking=False)
+    assert model.thinking is False

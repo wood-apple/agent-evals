@@ -123,6 +123,7 @@ class Session:
                 self.tools,
                 self.settings.temperature,
                 self.settings.max_tokens,
+                thinking=self.settings.thinking,
             )
             self.trace.count_usage(
                 response.input_tokens, response.output_tokens, response.cost_usd

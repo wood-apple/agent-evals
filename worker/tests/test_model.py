@@ -141,3 +141,14 @@ async def test_ollama_gets_a_large_context_window(monkeypatch):
     seen.clear()
     await LiteLLMModel("groq/x").complete([], [], 0.0, 100)
     assert "num_ctx" not in seen
+
+
+def test_thinking_switch_is_passed_to_ollama_only():
+    from evals.model import provider_options
+
+    assert provider_options("ollama_chat/qwen3:8b", False) == {
+        "num_ctx": 32_768,
+        "think": False,
+    }
+    assert provider_options("ollama_chat/qwen3:8b") == {"num_ctx": 32_768}
+    assert provider_options("anthropic/claude-haiku-5-5", False) == {}

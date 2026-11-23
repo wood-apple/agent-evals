@@ -14,6 +14,7 @@ class Settings:
     memory: bool = False
     skills: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
+    thinking: bool | None = None
 
     def __post_init__(self):
         object.__setattr__(self, "temperature", float(self.temperature))
@@ -32,4 +33,7 @@ class Config:
     def id(self) -> str:
         payload = asdict(self)
         payload.pop("label")
+        payload["settings"] = {
+            k: v for k, v in payload["settings"].items() if v is not None
+        }
         return content_hash(payload)
