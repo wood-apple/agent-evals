@@ -152,6 +152,21 @@ class Store:
             events=json.loads(row["events"]),
         )
 
+    def get_experiment(self, experiment_id: str) -> Experiment:
+        row = self.conn.execute(
+            "select * from experiments where id = ?", (experiment_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(experiment_id)
+        return Experiment(
+            id=row["id"],
+            name=row["name"],
+            task_ids=json.loads(row["task_ids"]),
+            config_ids=json.loads(row["config_ids"]),
+            n_trials=row["n_trials"],
+            seed=row["seed"],
+        )
+
 
 def now() -> str:
     return datetime.now(UTC).isoformat()
