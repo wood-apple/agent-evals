@@ -19,5 +19,9 @@ export function useData<T>(load: () => Promise<T>, deps: unknown[], refreshMs?: 
     };
   }, [reload, refreshMs]);
 
-  return { data, error, reload: () => reload().then(setData) };
+  const refresh = () =>
+    reload()
+      .then((value) => (setData(value), setError(undefined)))
+      .catch((e: Error) => setError(e.message));
+  return { data, error, reload: refresh };
 }

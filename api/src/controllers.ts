@@ -22,13 +22,18 @@ const HARNESSES = ['baseline', 'hermes'];
 
 @Controller('tasks')
 export class TasksController {
-  private cache?: unknown[];
+  private cache?: Promise<unknown[]>;
 
-  constructor(private readonly worker: WorkerService) {}
+  constructor(private readonly worker: WorkerService) {
+    this.list().catch(() => undefined);
+  }
 
   @Get()
-  async list() {
-    this.cache ??= await this.worker.json<unknown[]>('tasks');
+  list() {
+    this.cache ??= this.worker.json<unknown[]>('tasks').catch((error) => {
+      this.cache = undefined;
+      throw error;
+    });
     return this.cache;
   }
 }

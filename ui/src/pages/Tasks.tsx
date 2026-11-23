@@ -6,7 +6,15 @@ export function TasksPage() {
   return (
     <>
       <h2>Tasks</h2>
-      {tasks.error && <p className="error">{tasks.error}</p>}
+      {tasks.error && (
+        <p className="error">
+          Couldn't load tasks: {tasks.error}{' '}
+          <button type="button" className="link" onClick={tasks.reload}>
+            Try again
+          </button>
+        </p>
+      )}
+      {!tasks.data && !tasks.error && <p className="muted">Loading tasks…</p>}
       <table>
         <thead>
           <tr>
