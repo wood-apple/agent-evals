@@ -77,7 +77,7 @@ class Store:
                 (status, experiment_id),
             )
 
-    def save_trial(self, result: TrialResult, traces: TrialTrace):
+    def save_trial(self, result: TrialResult, trace: TrialTrace) -> bool:
         with self.conn:
             cursor = self.conn.execute(
                 "insert or ignore into trials"
@@ -108,7 +108,7 @@ class Store:
                 return False
             self.conn.execute(
                 "insert into traces (trial_id, events, grades) values (?, ?, ?)",
-                (result.id, json.dumps(traces.events), json.dumps(traces.grades)),
+                (result.id, json.dumps(trace.events), json.dumps(trace.grades)),
             )
         return True
 
@@ -158,9 +158,7 @@ def now() -> str:
 
 
 def row_to_trial_result(row: sqlite3.Row) -> TrialResult:
-    names = {f.name for f in fields(TrialResult)}
-    columns = row.keys()
-    values = {name: row[name] for name in names if name in columns}
+    values = {f.name: row[f.name] for f in fields(TrialResult)}
     if values["passed"] is not None:
         values["passed"] = bool(values["passed"])
     return TrialResult(**values)

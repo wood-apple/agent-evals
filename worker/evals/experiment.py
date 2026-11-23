@@ -55,7 +55,7 @@ class TrialTrace:
     grades: list[dict]
 
 
-def trial_id(experiment_id: str, task_id: str, config_id: str, trial_index: str) -> str:
+def trial_id(experiment_id: str, task_id: str, config_id: str, trial_index: int) -> str:
     return content_hash(
         {
             "experiment_id": experiment_id,
