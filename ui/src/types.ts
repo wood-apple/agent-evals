@@ -7,6 +7,7 @@ export interface Settings {
   skills: string[];
   tools: string[];
   thinking: boolean | null;
+  verify?: boolean | null;
 }
 
 export interface Config {

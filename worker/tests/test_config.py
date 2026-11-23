@@ -57,6 +57,8 @@ def test_unset_new_settings_do_not_change_existing_ids():
     assert make_config().id == make_config(thinking=None).id
     assert make_config().id != make_config(thinking=False).id
     assert make_config(thinking=False).id != make_config(thinking=True).id
+    assert make_config().id == make_config(verify=None).id
+    assert make_config().id != make_config(verify=True).id
 
 
 def test_ids_saved_before_new_settings_existed_still_match():

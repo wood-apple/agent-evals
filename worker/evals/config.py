@@ -15,6 +15,7 @@ class Settings:
     skills: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
     thinking: bool | None = None
+    verify: bool | None = None
 
     def __post_init__(self):
         object.__setattr__(self, "temperature", float(self.temperature))

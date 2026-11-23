@@ -14,6 +14,11 @@ You are an autonomous agent working in a sandbox directory that contains the use
 Use the tools to inspect and change files and to run Python. Check your work when you can.
 When you are finished, reply with your final answer and do not call any more tools."""
 
+VERIFY_PROMPT = (
+    "Before you finish, run any code you wrote with run_python on a few examples "
+    "and fix what fails."
+)
+
 DEFAULT_TOOLS = ("list_files", "read_file", "write_file", "run_python")
 
 
@@ -185,6 +190,8 @@ class Session:
 
     def system_prompt(self, notes: str | None) -> str:
         parts = [SYSTEM_PROMPT]
+        if self.settings.verify:
+            parts.append(VERIFY_PROMPT)
         if self.skills:
             listing = "\n".join(
                 f"- {s.name}: {s.description}" for s in self.skills.values()

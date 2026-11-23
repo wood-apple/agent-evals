@@ -151,3 +151,11 @@ async def test_thinking_setting_reaches_the_model(env):
     model = ScriptedModel(reply("done"))
     await run(model, env, thinking=False)
     assert model.thinking is False
+
+
+async def test_verify_setting_adds_the_test_nudge(env):
+    model = ScriptedModel(reply("done"), reply("done"))
+    await run(model, env)
+    assert "run_python on a few examples" not in model.requests[0][0]["content"]
+    await run(model, env, verify=True)
+    assert "run_python on a few examples" in model.requests[1][0]["content"]
