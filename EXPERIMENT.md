@@ -1,12 +1,13 @@
 # Experiments
 
-Three experiments were run on the platform. All of them are in `results/evals.db` and can be opened in the UI.
+Four experiments were run on the platform. All of them are in `results/evals.db` and can be opened in the UI.
 
 | # | Question | Result |
 |---|---|---|
 | 1 | Do skills help the baseline agent? (Haiku, baseline) | **Yes**: +19.2 pp, CI [+4.0, +36.0], concentrated in the 5 skill tasks |
 | 2 | Does memory help Hermes across sessions? (Haiku, Hermes) | **Yes, on the memory tasks**: 0% → 100% on two of them; the task-level CI includes 0 because only 3 of 25 tasks use memory |
 | 3 | Can a local 8B model replace Haiku? (baseline, qwen3:8b on Ollama) | **No**: −63.9 pp, CI [−81.9, −44.4]; free, but it never tests its own code |
+| 4 | Does thinking mode rescue the local model? (same as 3, thinking on) | **No**: −61.3 pp, CI [−78.7, −42.7]; 13× slower, helps on some tasks and hurts on others |
 
 ## 1. Do skills help?
 **Experiment id:** `exp-1ece8817f7b0` (in `results/evals.db`; reproduce with the command below)
@@ -185,11 +186,41 @@ All 25 tasks, N = 3, so 150 trials, at concurrency 1 because Ollama serves one r
 
 qwen costs nothing per token, but it's twice as slow on a laptop GPU and is only usable for the simple lookup and file tasks it passes (`csv-revenue-west`, `json-config-lookup`, `file-csv-to-json`, and similar). Haiku ran the same 75 trials for $0.064.
 
+## 4. Does thinking mode rescue the local model?
+
+**Experiment id:** `exp-c7fb9622ff55`
+
+### Hypothesis
+
+qwen3:8b has a thinking mode. Experiment 3 ran it off for speed, so the obvious objection is that it was handicapped. With thinking on it should plan better, and maybe check its work.
+
+### Setup
+
+The same as experiment 3, with one change: the qwen config sets `thinking: true` (`configs/baseline-qwen3-8b-local-thinking.json`). The Haiku config is identical. All 25 tasks, N = 3, so 150 trials at concurrency 1. It took about 7 hours on the laptop.
+
+### Results
+
+| | Pass rate | Latency | Tokens in / out | Timeouts | Infra errors |
+|---|---|---|---|---|---|
+| A: Haiku | **98.7%** | 5.7 s | 5,142 / 773 | 0 | 0 |
+| B: qwen3:8b, thinking on | 37.3% | 139.5 s | 2,193 / 1,534 | 20 | 0 |
+
+- **Δ pass rate: −61.3 pp, 95% CI [−78.7, −42.7].** McNemar: 46 pairs passed only with Haiku and 0 only with qwen. **Verdict: A is better.**
+- **Against thinking off (experiment 3):** qwen passes 37.3% instead of 33.3%, but that is two separate experiments, so it isn't a paired comparison. Per task, the difference is not "a bit better everywhere":
+  - **Better with thinking:** `memory-preferences`, `word-frequency`, `judge-code-review`, `code-fix-binary-search` and two skill tasks went from 0% to 33–100%. These are the tasks that need a plan or careful reading.
+  - **Worse with thinking:** `csv-revenue-west`, `file-csv-to-json` and `skill-qlog-bytes` went from 100% to 0%. These are simple lookups that thinking-off qwen did reliably.
+  - **Timeouts:** 20 of 75 trials hit the 5-minute limit, mostly coding tasks (all 3 trials of four of them). The model spends its time thinking and runs out of clock before it finishes.
+- **It still never runs its code.** In all 15 coding trials, thinking on or off, qwen never called `run_python`. Thinking doesn't change that habit.
+
+### What the platform caught
+
+The first attempt at this run had all its qwen trials marked as infrastructure errors. A thinking step can take longer than the 2-minute per-request limit. The runner counted the retry after that as waiting on a rate limit, so it called each trial timeout an infrastructure error and retried the trial three times. The result would have been about 20 hours of running and no qwen data at all. Only real 429 and 503 responses count as rate-limit waits now (`d71429c`), and a slow model's timeouts count against it. The same bug explains experiment 3's three errored trials.
+
 ## Conclusions
 
 - **Skills and memory both work, and only where they're needed.** Each one turns tasks that are impossible without it into reliable passes, and changes nothing elsewhere. The platform's per-task view shows that, and the "concentrated" verdict keeps a 3-task effect from being sold as a general improvement.
 - **The harness costs more than it adds on this set.** Hermes and the baseline both pass about 98% with the right features on, but Hermes uses 11× the tokens and 4× the time. Hermes's extra tools would need harder, longer tasks to pay off.
-- **Model size matters more than price here.** The local 8B model is free but fails two thirds of the tasks, mostly because it doesn't check its work.
+- **Model size matters more than price here.** The local 8B model is free but fails two thirds of the tasks, mostly because it doesn't check its work. Thinking mode doesn't fix that: it trades some tasks for others and makes every trial 13× slower.
 - **Trajectory inspection earned its place.** Two of the three Hermes runs had isolation leaks that the numbers alone didn't show. Reading the traces found them.
 
 ## What didn't work
