@@ -52,10 +52,10 @@ class Store:
             settings=Settings(**json.loads(row["settings"])),
         )
 
-    def save_experiment(self, experiment: Experiment) -> None:
+    def save_experiment(self, experiment: Experiment) -> bool:
         with self.conn:
-            self.conn.execute(
-                "insert into experiments"
+            cursor = self.conn.execute(
+                "insert or ignore into experiments"
                 " (id, name, task_ids, config_ids, n_trials, seed, status, created_at)"
                 " values (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -69,13 +69,34 @@ class Store:
                     now(),
                 ),
             )
+        return cursor.rowcount == 1
 
     def set_experiment_status(self, experiment_id: str, status: str) -> None:
         with self.conn:
-            self.conn.execute(
+            cursor = self.conn.execute(
                 "update experiments set status = ? where id = ?",
                 (status, experiment_id),
             )
+        if cursor.rowcount == 0:
+            raise KeyError(experiment_id)
+
+    def get_experiment_status(self, experiment_id: str) -> str:
+        row = self.conn.execute(
+            "select status from experiments where id = ?", (experiment_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(experiment_id)
+        return row["status"]
+
+    def task_versions(self, experiment_id: str) -> dict[str, set[str]]:
+        rows = self.conn.execute(
+            "select distinct task_id, task_version from trials where experiment_id = ?",
+            (experiment_id,),
+        )
+        versions: dict[str, set[str]] = {}
+        for row in rows:
+            versions.setdefault(row["task_id"], set()).add(row["task_version"])
+        return versions
 
     def save_trial(self, result: TrialResult, trace: TrialTrace) -> bool:
         with self.conn:

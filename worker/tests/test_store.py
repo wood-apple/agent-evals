@@ -132,3 +132,23 @@ def test_lists_become_tuples_and_config_order_is_kept():
 def test_zero_trials_rejected():
     with pytest.raises(ValueError):
         Experiment(id="e", name="n", task_ids=["a"], config_ids=["A"], n_trials=0)
+
+
+def test_saving_an_experiment_twice_is_a_no_op(store, experiment):
+    assert store.save_experiment(experiment) is False
+
+
+def test_status_of_unknown_experiment_raises(store):
+    with pytest.raises(KeyError):
+        store.set_experiment_status("nope", "done")
+
+
+def test_status_round_trip(store, experiment):
+    store.set_experiment_status("exp1", "running")
+    assert store.get_experiment_status("exp1") == "running"
+
+
+def test_task_versions_seen_in_trials(store, experiment):
+    store.save_trial(make_result(0), EMPTY)
+    store.save_trial(dataclasses.replace(make_result(1), task_version="v2"), EMPTY)
+    assert store.task_versions("exp1") == {"t1": {"v1", "v2"}}
