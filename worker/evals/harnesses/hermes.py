@@ -3,14 +3,19 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import signal
 import sqlite3
 from pathlib import Path
 
 from evals.config import Config
 from evals.harness import HarnessResult, Trace, TrialEnv
 from evals.pricing import cost_usd
-from evals.sandbox import clean_env, run_command
+from evals.sandbox import (
+    clean_env,
+    make_private_agent_dir,
+    run_as_agent,
+    run_command,
+    stop_processes_with,
+)
 from evals.task import Task
 
 BASE_TOOLSETS = ("file", "terminal", "code_execution")
@@ -40,64 +45,75 @@ class HermesHarness:
     async def run(
         self, task: Task, config: Config, env: TrialEnv, trace: Trace
     ) -> HarnessResult:
-        home = env.state_dir / "hermes"
-        prepare_home(home, config, env.skills_dir)
-        provider, model, process_env = provider_settings(config.model, home)
-        process_env |= self.extra_env
-        try:
-            return await self.run_sessions(
-                task, config, env, trace, home, provider, model, process_env
-            )
-        finally:
-            stop_processes_using(home)
-
-    async def run_sessions(
-        self, task, config, env, trace, home, provider, model, process_env
-    ):
         answers = []
         for index, prompt in enumerate(task.sessions):
-            usage_path = home / f"usage-{index}.json"
-            trace.add("session_start", session=index, prompt=prompt)
-            if config.settings.memory:
-                trace.add("memory_read", session=index, content=read_memory(home))
-            args = [
-                self.binary,
-                "-z",
-                prompt,
-                "-m",
-                model,
-                "--provider",
-                provider,
-                "-t",
-                ",".join(toolsets(config)),
-                "--usage-file",
-                str(usage_path),
-            ]
-            output, exit_code = await run_command(
-                args, cwd=env.workdir, timeout_s=task.timeout_s, env=process_env
-            )
-            if exit_code == -1:
-                raise TimeoutError(
-                    f"hermes session {index} hit the {task.timeout_s}s timeout"
+            home = session_home(env.state_dir, config, index)
+            try:
+                answer, finished = await self.run_session(
+                    index, prompt, task, config, env, trace, home
                 )
-            usage = read_json(usage_path)
-            if usage is None:
-                raise HermesError(
-                    f"hermes exited {exit_code} without a usage report: {output[-500:]}"
-                )
-            record_usage(trace, config.model, usage)
-            trace.events.extend(
-                transcript_events(home / "state.db", usage.get("session_id"), index)
-            )
-            if usage.get("failed"):
-                raise HermesError(
-                    f"hermes run failed (exit {exit_code}): {output[-500:]}"
-                )
-            answers.append(output.strip())
-            if not usage.get("completed", True):
+            finally:
+                stop_processes_with(home)
+            answers.append(answer)
+            if not finished:
                 trace.add("stop", session=index, reason="max_steps")
                 return HarnessResult(tuple(answers), "max_steps")
         return HarnessResult(tuple(answers))
+
+    async def run_session(
+        self, index, prompt, task, config, env, trace, home
+    ) -> tuple[str, bool]:
+        prepare_home(home, config, env.skills_dir)
+        provider, model, process_env = provider_settings(config.model, home)
+        process_env |= self.extra_env
+        usage_path = home / f"usage-{index}.json"
+        trace.add("session_start", session=index, prompt=prompt)
+        if config.settings.memory:
+            before = snapshot(home, env.state_dir / f"snapshot-{index}-before")
+            trace.add("memory_read", session=index, content=read_memory(before))
+        args = [
+            self.binary,
+            "-z",
+            prompt,
+            "-m",
+            model,
+            "--provider",
+            provider,
+            "-t",
+            ",".join(toolsets(config)),
+            "--usage-file",
+            str(usage_path),
+        ]
+        output, exit_code = await run_command(
+            args,
+            cwd=env.workdir,
+            timeout_s=task.timeout_s,
+            env=process_env,
+            as_agent=True,
+        )
+        if exit_code == -1:
+            raise TimeoutError(
+                f"hermes session {index} hit the {task.timeout_s}s timeout"
+            )
+        after = snapshot(home, env.state_dir / f"snapshot-{index}-after")
+        usage = read_json(after / usage_path.name)
+        if usage is None:
+            raise HermesError(
+                f"hermes exited {exit_code} without a usage report: {output[-500:]}"
+            )
+        record_usage(trace, config.model, usage)
+        trace.events.extend(
+            transcript_events(after / "state.db", usage.get("session_id"), index)
+        )
+        if usage.get("failed"):
+            raise HermesError(f"hermes run failed (exit {exit_code}): {output[-500:]}")
+        return output.strip(), usage.get("completed", True)
+
+
+def session_home(state_dir: Path, config: Config, index: int) -> Path:
+    if config.settings.memory:
+        return state_dir / "hermes"
+    return state_dir / f"hermes-session-{index}"
 
 
 def toolsets(config: Config) -> list[str]:
@@ -110,11 +126,12 @@ def toolsets(config: Config) -> list[str]:
 
 
 def prepare_home(home: Path, config: Config, skills_dir: Path) -> None:
-    home.mkdir(parents=True, exist_ok=True)
+    seed = home.with_name(home.name + "-seed")
+    seed.mkdir(parents=True, exist_ok=True)
     for name in config.settings.skills:
-        shutil.copytree(skills_dir / name, home / "skills" / name, dirs_exist_ok=True)
+        shutil.copytree(skills_dir / name, seed / "skills" / name, dirs_exist_ok=True)
     settings = config.settings
-    (home / "config.yaml").write_text(
+    (seed / "config.yaml").write_text(
         "agent:\n"
         f"  max_turns: {settings.max_steps}\n"
         "memory:\n"
@@ -123,28 +140,7 @@ def prepare_home(home: Path, config: Config, skills_dir: Path) -> None:
         "gateway:\n"
         f"  unmanaged_idle_exit_seconds: {GATEWAY_IDLE_EXIT_S}\n"
     )
-
-
-def stop_processes_using(home: Path) -> list[int]:
-    proc = Path("/proc")
-    if not proc.is_dir():
-        return []
-    marker = f"HERMES_HOME={home}".encode()
-    stopped = []
-    for entry in proc.iterdir():
-        if not entry.name.isdigit() or int(entry.name) == os.getpid():
-            continue
-        try:
-            environ = (entry / "environ").read_bytes().split(b"\0")
-        except OSError:
-            continue
-        if marker in environ:
-            try:
-                os.kill(int(entry.name), signal.SIGKILL)
-                stopped.append(int(entry.name))
-            except ProcessLookupError:
-                pass
-    return stopped
+    make_private_agent_dir(home, seed)
 
 
 def provider_settings(model: str, home: Path) -> tuple[str, str, dict[str, str]]:
@@ -179,11 +175,30 @@ def require_env(name: str) -> str:
     return value
 
 
-def read_memory(home: Path) -> str:
-    memories = home / "memories"
-    if not memories.is_dir():
-        return ""
-    return "\n".join(p.read_text() for p in sorted(memories.glob("*.md")))
+SNAPSHOT_SCRIPT = """
+mkdir -p "$2"
+for name in state.db state.db-wal state.db-shm; do
+  [ -f "$1/$name" ] && cat "$1/$name" > "$2/$name"
+done
+for usage in "$1"/usage-*.json; do
+  [ -f "$usage" ] && cat "$usage" > "$2/$(basename "$usage")"
+done
+cat "$1"/memories/*.md > "$2/memory.md" 2>/dev/null
+true
+"""
+
+
+def snapshot(home: Path, dest: Path) -> Path:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    run_as_agent(
+        ["sh", "-c", SNAPSHOT_SCRIPT, "snapshot", str(home), str(dest)], umask="022"
+    )
+    return dest
+
+
+def read_memory(snapshot_dir: Path) -> str:
+    path = snapshot_dir / "memory.md"
+    return path.read_text() if path.exists() else ""
 
 
 def read_json(path: Path) -> dict | None:

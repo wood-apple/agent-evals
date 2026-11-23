@@ -62,7 +62,7 @@ async def test_runs_each_session_and_reads_the_transcript(env):
 
 async def test_trial_gets_isolated_home_with_config_and_skills(env):
     await run(env, skills=("acme",), max_steps=7)
-    home = env.state_dir / "hermes"
+    home = env.state_dir / "hermes-session-0"
     assert (home / "skills/acme/SKILL.md").exists()
     config = (home / "config.yaml").read_text()
     assert "max_turns: 7" in config
@@ -126,7 +126,7 @@ async def test_gateway_idle_exit_is_short(env):
     await run(env)
     assert (
         "unmanaged_idle_exit_seconds: 5"
-        in (env.state_dir / "hermes" / "config.yaml").read_text()
+        in (env.state_dir / "hermes-session-0" / "config.yaml").read_text()
     )
 
 
@@ -135,7 +135,7 @@ def test_leftover_processes_of_a_trial_are_stopped(tmp_path):
     import os
     import subprocess
 
-    from evals.harnesses.hermes import stop_processes_using
+    from evals.sandbox import stop_processes_with
 
     mine = subprocess.Popen(
         ["sleep", "60"], env={**os.environ, "HERMES_HOME": str(tmp_path)}
@@ -144,8 +144,25 @@ def test_leftover_processes_of_a_trial_are_stopped(tmp_path):
         ["sleep", "60"], env={**os.environ, "HERMES_HOME": str(tmp_path / "other")}
     )
     try:
-        assert stop_processes_using(tmp_path) == [mine.pid]
+        assert stop_processes_with(tmp_path) == [mine.pid]
         assert mine.wait(timeout=5) == -9
         assert other.poll() is None
     finally:
         other.kill()
+
+
+async def test_memory_off_gives_every_session_a_fresh_home(env):
+    await run(env, "first", "second")
+    first, second = (
+        env.state_dir / "hermes-session-0",
+        env.state_dir / "hermes-session-1",
+    )
+    assert (first / "memories" / "MEMORY.md").read_text() == "first\n"
+    assert (second / "memories" / "MEMORY.md").read_text() == "second\n"
+
+
+async def test_memory_on_shares_one_home_across_sessions(env):
+    await run(env, "first", "second", memory=True)
+    assert (
+        env.state_dir / "hermes" / "memories" / "MEMORY.md"
+    ).read_text() == "first\nsecond\n"
