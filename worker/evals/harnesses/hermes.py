@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import sqlite3
 from pathlib import Path
 
@@ -23,6 +24,7 @@ NATIVE_PROVIDERS = {
 }
 
 
+GATEWAY_IDLE_EXIT_S = 5
 CONSOLE_KEY_PREFIXES = ("sk-ant-api", "sk-ant-usr", "sk-ant-svc", "sk-ant-admin")
 
 
@@ -42,6 +44,16 @@ class HermesHarness:
         prepare_home(home, config, env.skills_dir)
         provider, model, process_env = provider_settings(config.model, home)
         process_env |= self.extra_env
+        try:
+            return await self.run_sessions(
+                task, config, env, trace, home, provider, model, process_env
+            )
+        finally:
+            stop_processes_using(home)
+
+    async def run_sessions(
+        self, task, config, env, trace, home, provider, model, process_env
+    ):
         answers = []
         for index, prompt in enumerate(task.sessions):
             usage_path = home / f"usage-{index}.json"
@@ -108,7 +120,31 @@ def prepare_home(home: Path, config: Config, skills_dir: Path) -> None:
         "memory:\n"
         f"  memory_enabled: {str(settings.memory).lower()}\n"
         "  user_profile_enabled: false\n"
+        "gateway:\n"
+        f"  unmanaged_idle_exit_seconds: {GATEWAY_IDLE_EXIT_S}\n"
     )
+
+
+def stop_processes_using(home: Path) -> list[int]:
+    proc = Path("/proc")
+    if not proc.is_dir():
+        return []
+    marker = f"HERMES_HOME={home}".encode()
+    stopped = []
+    for entry in proc.iterdir():
+        if not entry.name.isdigit() or int(entry.name) == os.getpid():
+            continue
+        try:
+            environ = (entry / "environ").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        if marker in environ:
+            try:
+                os.kill(int(entry.name), signal.SIGKILL)
+                stopped.append(int(entry.name))
+            except ProcessLookupError:
+                pass
+    return stopped
 
 
 def provider_settings(model: str, home: Path) -> tuple[str, str, dict[str, str]]:

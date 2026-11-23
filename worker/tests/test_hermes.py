@@ -120,3 +120,32 @@ def test_non_console_anthropic_keys_are_rejected_up_front(tmp_path, monkeypatch)
         assert (
             provider_settings("anthropic/claude-haiku-5-5", tmp_path)[0] == "anthropic"
         )
+
+
+async def test_gateway_idle_exit_is_short(env):
+    await run(env)
+    assert (
+        "unmanaged_idle_exit_seconds: 5"
+        in (env.state_dir / "hermes" / "config.yaml").read_text()
+    )
+
+
+@pytest.mark.skipif(not Path("/proc").is_dir(), reason="needs Linux /proc")
+def test_leftover_processes_of_a_trial_are_stopped(tmp_path):
+    import os
+    import subprocess
+
+    from evals.harnesses.hermes import stop_processes_using
+
+    mine = subprocess.Popen(
+        ["sleep", "60"], env={**os.environ, "HERMES_HOME": str(tmp_path)}
+    )
+    other = subprocess.Popen(
+        ["sleep", "60"], env={**os.environ, "HERMES_HOME": str(tmp_path / "other")}
+    )
+    try:
+        assert stop_processes_using(tmp_path) == [mine.pid]
+        assert mine.wait(timeout=5) == -9
+        assert other.poll() is None
+    finally:
+        other.kill()
