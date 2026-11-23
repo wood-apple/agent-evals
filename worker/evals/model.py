@@ -105,6 +105,7 @@ class LiteLLMModel:
                     temperature=temperature,
                     max_tokens=max_tokens,
                     timeout=self.request_timeout_s,
+                    **provider_options(self.name),
                 )
             except RETRYABLE as e:
                 if attempt == self.max_attempts - 1:
@@ -131,6 +132,15 @@ class LiteLLMModel:
 
 
 RETRY_HINT = re.compile(r"try again in (?:(\d+)m)?(\d+(?:\.\d+)?)s", re.IGNORECASE)
+
+
+OLLAMA_CONTEXT_TOKENS = 32_768
+
+
+def provider_options(model: str) -> dict:
+    if model.startswith(("ollama/", "ollama_chat/")):
+        return {"num_ctx": OLLAMA_CONTEXT_TOKENS}
+    return {}
 
 
 def retry_delay(error: Exception, attempt: int, base_delay_s: float) -> float:

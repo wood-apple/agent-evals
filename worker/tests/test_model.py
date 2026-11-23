@@ -126,3 +126,18 @@ def test_retry_delay_honours_the_provider_hint():
     assert retry_delay(error, 0, 1.0) == pytest.approx(34.77)
     assert retry_delay(Exception("try again in 1m2.5s"), 0, 1.0) == pytest.approx(63.5)
     assert 2 <= retry_delay(Exception("busy"), 1, 2.0) <= 6
+
+
+async def test_ollama_gets_a_large_context_window(monkeypatch):
+    seen = {}
+
+    async def capture(**kwargs):
+        seen.update(kwargs)
+        return fake_response("ok")
+
+    monkeypatch.setattr(model_module.litellm, "acompletion", capture)
+    await LiteLLMModel("ollama_chat/qwen3:8b").complete([], [], 0.0, 100)
+    assert seen["num_ctx"] == 32_768
+    seen.clear()
+    await LiteLLMModel("groq/x").complete([], [], 0.0, 100)
+    assert "num_ctx" not in seen
