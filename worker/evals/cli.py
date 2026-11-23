@@ -94,6 +94,11 @@ def parser() -> argparse.ArgumentParser:
     export.add_argument("--out", type=Path, required=True)
     export.set_defaults(handler=cmd_export)
 
+    archive = sub.add_parser("archive", help="hide an experiment in the UI")
+    archive.add_argument("experiment")
+    archive.add_argument("--undo", action="store_true", help="unarchive")
+    archive.set_defaults(handler=cmd_archive)
+
     judge = sub.add_parser(
         "judge-validate", help="score the judge against labelled examples"
     )
@@ -296,6 +301,11 @@ def cmd_export(args) -> None:
     else:
         export_json(store, args.experiment, args.out, include_traces=args.traces)
     print(args.out)
+
+
+def cmd_archive(args) -> None:
+    open_store(args).set_archived(args.experiment, not args.undo)
+    print(json.dumps({"id": args.experiment, "archived": not args.undo}))
 
 
 def cmd_judge_validate(args) -> None:

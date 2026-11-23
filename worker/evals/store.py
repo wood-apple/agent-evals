@@ -80,6 +80,31 @@ class Store:
         if cursor.rowcount == 0:
             raise KeyError(experiment_id)
 
+    def set_archived(self, experiment_id: str, archived: bool) -> None:
+        if not self.conn.execute(
+            "select 1 from experiments where id = ?", (experiment_id,)
+        ).fetchone():
+            raise KeyError(experiment_id)
+        with self.conn:
+            if archived:
+                self.conn.execute(
+                    "insert or ignore into archived_experiments values (?, datetime('now'))",
+                    (experiment_id,),
+                )
+            else:
+                self.conn.execute(
+                    "delete from archived_experiments where experiment_id = ?",
+                    (experiment_id,),
+                )
+
+    def is_archived(self, experiment_id: str) -> bool:
+        return bool(
+            self.conn.execute(
+                "select 1 from archived_experiments where experiment_id = ?",
+                (experiment_id,),
+            ).fetchone()
+        )
+
     def get_experiment_status(self, experiment_id: str) -> str:
         row = self.conn.execute(
             "select status from experiments where id = ?", (experiment_id,)

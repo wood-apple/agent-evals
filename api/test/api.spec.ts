@@ -57,6 +57,13 @@ describe('API', () => {
       [experiment.id, experiment.planned, experiment.finished, experiment.errors, experiment.task_ids],
       ['exp1', 12, 1, 0, ['t1', 't2']],
     );
+    assert.equal(experiment.archived, false);
+  });
+
+  it('archives through the worker', async () => {
+    const res = await request(app.getHttpServer()).post('/api/experiments/exp1/archive').send({ archived: false }).expect(201);
+    assert.deepEqual(res.body, { id: 'exp1', archived: false });
+    await request(app.getHttpServer()).post('/api/experiments/nope/archive').send({}).expect(404);
   });
 
   it('returns an experiment with its configs and trials', async () => {

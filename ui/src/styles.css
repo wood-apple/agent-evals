@@ -92,6 +92,8 @@ form label.check { flex-direction: row; align-items: center; gap: 6px; font-weig
 input, select, button { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
 button { background: var(--accent); color: white; border: none; padding: 7px 16px; cursor: pointer; }
 button:disabled { opacity: 0.5; cursor: default; }
+button.link { background: none; color: var(--accent); padding: 0; }
+tr.muted td { opacity: 0.55; }
 fieldset { border: 1px solid var(--border); border-radius: 6px; margin: 8px 0; }
 .row { display: flex; gap: 16px; flex-wrap: wrap; }
 

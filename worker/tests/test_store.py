@@ -152,3 +152,16 @@ def test_task_versions_seen_in_trials(store, experiment):
     store.save_trial(make_result(0), EMPTY)
     store.save_trial(dataclasses.replace(make_result(1), task_version="v2"), EMPTY)
     assert store.task_versions("exp1") == {"t1": {"v1", "v2"}}
+
+
+def test_archive_round_trip(store, experiment):
+    store.set_archived("exp1", True)
+    store.set_archived("exp1", True)
+    assert store.is_archived("exp1")
+    store.set_archived("exp1", False)
+    assert not store.is_archived("exp1")
+
+
+def test_archiving_unknown_experiment_raises(store):
+    with pytest.raises(KeyError):
+        store.set_archived("nope", True)

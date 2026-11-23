@@ -77,11 +77,18 @@ export class ExperimentsController {
         `select e.*, count(t.id) as finished,
                 coalesce(sum(t.status = 'error'), 0) as errors,
                 coalesce(sum(t.cost_usd), 0) as cost_usd,
-                max(t.finished_at) as last_finished_at
+                max(t.finished_at) as last_finished_at,
+                exists(select 1 from archived_experiments a where a.experiment_id = e.id) as archived
          from experiments e left join trials t on t.experiment_id = e.id
          group by e.id order by e.created_at desc`,
       )
-      .map((e) => this.withRunState(e));
+      .map((e) => this.withRunState({ ...e, archived: Boolean(e.archived) }));
+  }
+
+  @Post(':id/archive')
+  archive(@Param('id') id: string, @Body() body: { archived?: boolean }) {
+    this.db.one('select id from experiments where id = ?', id);
+    return this.worker.json('archive', id, ...(body.archived === false ? ['--undo'] : []));
   }
 
   @Get(':id')

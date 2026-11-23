@@ -20,6 +20,8 @@ export const api = {
   log: (id: string) => request<{ log: string }>(`/experiments/${id}/log`),
   startExperiment: (body: unknown) =>
     request<{ experimentId: string }>('/experiments', { method: 'POST', body: JSON.stringify(body) }),
+  archive: (id: string, archived: boolean) =>
+    request(`/experiments/${id}/archive`, { method: 'POST', body: JSON.stringify({ archived }) }),
   configs: () => request<Config[]>('/configs'),
   createConfig: (body: unknown) => request<Config>('/configs', { method: 'POST', body: JSON.stringify(body) }),
   tasks: () => request<TaskInfo[]>('/tasks'),

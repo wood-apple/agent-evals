@@ -43,3 +43,8 @@ create table if not exists traces(
     events text not null,
     grades text not null
 );
+
+create table if not exists archived_experiments (
+    experiment_id text primary key references experiments(id),
+    archived_at text not null
+);

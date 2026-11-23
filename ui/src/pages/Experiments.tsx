@@ -7,9 +7,18 @@ import { useData } from '../useData';
 export function ExperimentsPage() {
   const experiments = useData(api.experiments, [], 5000);
   const [status, setStatus] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveError, setArchiveError] = useState<string>();
   const statusOf = (e: { running: boolean; status: string }) => (e.running ? 'running' : e.status);
   const statuses = [...new Set((experiments.data ?? []).map(statusOf))].sort();
-  const shown = (experiments.data ?? []).filter((e) => !status || statusOf(e) === status);
+  const shown = (experiments.data ?? []).filter(
+    (e) => (!status || statusOf(e) === status) && (showArchived || !e.archived),
+  );
+  const toggleArchived = (id: string, archived: boolean) =>
+    api
+      .archive(id, archived)
+      .then(experiments.reload)
+      .catch((e: Error) => setArchiveError(e.message));
   return (
     <>
       <h2>Experiments</h2>
@@ -22,7 +31,11 @@ export function ExperimentsPage() {
             <option key={s}>{s}</option>
           ))}
         </select>
+      </label>{' '}
+      <label className="check">
+        <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived
       </label>
+      {archiveError && <p className="error">{archiveError}</p>}
       <table>
         <thead>
           <tr>
@@ -33,11 +46,12 @@ export function ExperimentsPage() {
             <th>Agent cost</th>
             <th>Duration</th>
             <th>Created</th>
+            <th />
           </tr>
         </thead>
         <tbody>
           {shown.map((e) => (
-            <tr key={e.id}>
+            <tr key={e.id} className={e.archived ? 'muted' : undefined}>
               <td>
                 <a href={href('experiment', e.id)}>{e.name}</a>
                 <div className="muted mono">{e.id}</div>
@@ -53,6 +67,11 @@ export function ExperimentsPage() {
               <td>{usd(e.cost_usd)}</td>
               <td>{runDuration(e)}</td>
               <td className="muted">{new Date(e.created_at).toLocaleString()}</td>
+              <td>
+                <button type="button" className="link" onClick={() => toggleArchived(e.id, !e.archived)}>
+                  {e.archived ? 'Unarchive' : 'Archive'}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
