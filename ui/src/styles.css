@@ -133,6 +133,8 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; margin: 8px 0; }
 .bubble.grading { border-color: var(--good); }
 .tool-call { margin-top: 6px; }
 details summary { cursor: pointer; color: var(--muted); }
+details summary.section-toggle { color: var(--text); font-weight: 600; font-size: 1.05rem; }
+details[open] > summary.section-toggle { margin-bottom: 12px; }
 
 @media (max-width: 640px) {
   main { padding: 12px 16px 48px; }
