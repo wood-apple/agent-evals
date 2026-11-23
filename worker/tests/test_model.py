@@ -1,3 +1,4 @@
+import asyncio
 from types import SimpleNamespace
 
 import litellm
@@ -180,3 +181,20 @@ async def test_only_provider_backpressure_counts_as_rate_limit_wait(
     finally:
         model_module.rate_limit_wait_s.reset(token)
     assert bool(waits) is counted
+
+
+async def test_hung_request_is_cut_off_and_retried(monkeypatch):
+    calls = []
+
+    async def hangs_once(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            await asyncio.sleep(60)
+        return fake_response("ok")
+
+    monkeypatch.setattr(model_module, "REQUEST_TIMEOUT_GRACE_S", 0.0)
+    monkeypatch.setattr(model_module.litellm, "acompletion", hangs_once)
+    model = LiteLLMModel("ollama/x", request_timeout_s=0.05, sleep=no_sleep)
+    response = await model.complete([], [], 0.0, 100)
+    assert response.text == "ok"
+    assert response.retries == 1

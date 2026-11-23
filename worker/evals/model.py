@@ -23,7 +23,9 @@ RETRYABLE = (
     litellm.Timeout,
     litellm.InternalServerError,
     litellm.ServiceUnavailableError,
+    TimeoutError,
 )
+REQUEST_TIMEOUT_GRACE_S = 10.0
 PROVIDER_BUSY = (litellm.RateLimitError, litellm.ServiceUnavailableError)
 
 
@@ -101,14 +103,19 @@ class LiteLLMModel:
         for attempt in range(self.max_attempts):
             started = time.monotonic()
             try:
-                response = await litellm.acompletion(
-                    model=self.name,
-                    messages=messages,
-                    tools=tools or None,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout=self.request_timeout_s,
-                    **provider_options(self.name, thinking),
+                # litellm's own timeout doesn't cover every provider path, and a
+                # dropped connection otherwise hangs the whole run
+                response = await asyncio.wait_for(
+                    litellm.acompletion(
+                        model=self.name,
+                        messages=messages,
+                        tools=tools or None,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        timeout=self.request_timeout_s,
+                        **provider_options(self.name, thinking),
+                    ),
+                    self.request_timeout_s + REQUEST_TIMEOUT_GRACE_S,
                 )
             except RETRYABLE as e:
                 if attempt == self.max_attempts - 1:
