@@ -1,0 +1,11 @@
+{
+  "label": "hermes · haiku · memory off",
+  "harness": "hermes",
+  "model": "anthropic/claude-haiku-5-5",
+  "settings": {
+    "temperature": 0.0,
+    "max_steps": 15,
+    "memory": false,
+    "skills": ["acme-finance", "acme-release-notes", "acme-shipping", "git-commit-style", "qlog-format"]
+  }
+}
