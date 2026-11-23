@@ -52,21 +52,31 @@ class Sandbox:
         return f"exit code {exit_code}\n{output}"
 
 
-async def run_command(args: list[str], cwd: Path, timeout_s: float) -> tuple[str, int]:
+async def run_command(
+    args: list[str], cwd: Path, timeout_s: float, env: dict[str, str] | None = None
+) -> tuple[str, int]:
     process = await asyncio.create_subprocess_exec(
         *args,
         cwd=cwd,
-        env=clean_env(cwd),
+        env=env if env is not None else clean_env(cwd),
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
     )
     try:
         stdout, _ = await asyncio.wait_for(process.communicate(), timeout_s)
     except TimeoutError:
+        await kill(process)
+        return f"timed out after {timeout_s:g}s", -1
+    except asyncio.CancelledError:
+        await kill(process)
+        raise
+    return truncate(stdout.decode(errors="replace")), process.returncode
+
+
+async def kill(process: asyncio.subprocess.Process) -> None:
+    if process.returncode is None:
         process.kill()
         await process.wait()
-        return f"timed out after {timeout_s:g}s", -1
-    return truncate(stdout.decode(errors="replace")), process.returncode
 
 
 def clean_env(home: Path) -> dict[str, str]:
