@@ -12,6 +12,7 @@ from evals.pricing import cost_usd
 from evals.sandbox import (
     clean_env,
     make_private_agent_dir,
+    remove_agent_dir,
     run_as_agent,
     run_command,
     stop_processes_with,
@@ -54,6 +55,8 @@ class HermesHarness:
                 )
             finally:
                 stop_processes_with(home)
+                if not config.settings.memory:
+                    remove_agent_dir(home)
             answers.append(answer)
             if not finished:
                 trace.add("stop", session=index, reason="max_steps")

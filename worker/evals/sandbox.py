@@ -175,6 +175,13 @@ def run_as_agent(args: list[str], umask: str = "002") -> None:
     subprocess.run(args, env=env, check=True, capture_output=True, timeout=30)
 
 
+def remove_agent_dir(path: Path) -> None:
+    if AGENT_USER:
+        run_as_agent(["rm", "-rf", str(path)])
+    else:
+        shutil.rmtree(path, ignore_errors=True)
+
+
 def release_to_group(path: Path) -> None:
     if AGENT_USER:
         args, env = agent_command(

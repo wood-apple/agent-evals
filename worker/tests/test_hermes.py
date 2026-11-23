@@ -62,7 +62,7 @@ async def test_runs_each_session_and_reads_the_transcript(env):
 
 async def test_trial_gets_isolated_home_with_config_and_skills(env):
     await run(env, skills=("acme",), max_steps=7)
-    home = env.state_dir / "hermes-session-0"
+    home = env.state_dir / "hermes-session-0-seed"
     assert (home / "skills/acme/SKILL.md").exists()
     config = (home / "config.yaml").read_text()
     assert "max_turns: 7" in config
@@ -126,7 +126,7 @@ async def test_gateway_idle_exit_is_short(env):
     await run(env)
     assert (
         "unmanaged_idle_exit_seconds: 5"
-        in (env.state_dir / "hermes-session-0" / "config.yaml").read_text()
+        in (env.state_dir / "hermes-session-0-seed" / "config.yaml").read_text()
     )
 
 
@@ -153,12 +153,17 @@ def test_leftover_processes_of_a_trial_are_stopped(tmp_path):
 
 async def test_memory_off_gives_every_session_a_fresh_home(env):
     await run(env, "first", "second")
-    first, second = (
-        env.state_dir / "hermes-session-0",
-        env.state_dir / "hermes-session-1",
-    )
-    assert (first / "memories" / "MEMORY.md").read_text() == "first\n"
-    assert (second / "memories" / "MEMORY.md").read_text() == "second\n"
+    for index, prompt in enumerate(("first", "second")):
+        snapshot = env.state_dir / f"snapshot-{index}-after"
+        assert (snapshot / "memory.md").read_text() == f"{prompt}\n"
+
+
+async def test_memory_off_removes_each_session_home_so_later_sessions_cannot_read_it(
+    env,
+):
+    await run(env, "first", "second")
+    assert not (env.state_dir / "hermes-session-0").exists()
+    assert not (env.state_dir / "hermes-session-1").exists()
 
 
 async def test_memory_on_shares_one_home_across_sessions(env):
