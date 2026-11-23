@@ -170,6 +170,20 @@ def make_private_agent_dir(path: Path, seed: Path) -> None:
     run_as_agent(["sh", "-c", script, "copy", str(path), str(seed)], umask="022")
 
 
+def reset_workspace(workdir: Path, fixtures: dict[str, str]) -> None:
+    for child in workdir.iterdir():
+        if AGENT_USER:
+            run_as_agent(["rm", "-rf", str(child)])
+        elif child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    for path, text in fixtures.items():
+        target = workdir / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+
+
 def run_as_agent(args: list[str], umask: str = "002") -> None:
     args, env = agent_command(args, {"PATH": "/usr/bin:/bin"}, umask=umask)
     done = subprocess.run(args, env=env, check=False, capture_output=True, timeout=30)

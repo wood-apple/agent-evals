@@ -159,3 +159,16 @@ async def test_verify_setting_adds_the_test_nudge(env):
     assert "run_python on a few examples" not in model.requests[0][0]["content"]
     await run(model, env, verify=True)
     assert "run_python on a few examples" in model.requests[1][0]["content"]
+
+
+async def test_fresh_workspace_drops_files_from_earlier_sessions(env):
+    model = ScriptedModel(
+        reply("", call("write_file", path="NOTES.md", content="port 6432")),
+        reply("noted"),
+        reply("", call("list_files")),
+        reply("no idea"),
+    )
+    task = dataclasses.replace(make_task("remember", "recall"), fixtures={"a.txt": "x"})
+    _, trace = await run(model, env, task=task, fresh_workspace=True)
+    assert model.requests[3][-1]["content"] == "a.txt"
+    assert "workspace_reset" in types(trace)

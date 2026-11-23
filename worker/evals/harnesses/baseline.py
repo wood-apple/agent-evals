@@ -5,7 +5,7 @@ from collections.abc import Callable
 from evals.config import Config
 from evals.harness import HarnessResult, Trace, TrialEnv
 from evals.model import LiteLLMModel, Model, ToolCall
-from evals.sandbox import Sandbox, ToolError
+from evals.sandbox import Sandbox, ToolError, reset_workspace
 from evals.skills import Skill, load_skills
 from evals.task import Task
 
@@ -84,6 +84,9 @@ class BaselineHarness:
         )
         answers = []
         for index, prompt in enumerate(task.sessions):
+            if index and config.settings.fresh_workspace:
+                reset_workspace(env.workdir, task.fixtures)
+                trace.add("workspace_reset", session=index)
             answer, stop_reason = await session.run(index, prompt)
             answers.append(answer)
             if stop_reason != "done":
