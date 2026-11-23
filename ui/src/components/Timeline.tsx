@@ -99,6 +99,13 @@ function EventView({ event }: { event: TraceEvent }) {
           <span className="who">skill loaded</span> <code>{String(event.name)}</code>
         </div>
       );
+    case 'retried':
+      return (
+        <div className="bubble stop">
+          <span className="who">retried after infrastructure errors · this is attempt {String(event.attempts)}</span>
+          <Json value={(event.errors as string[]).join('\n')} />
+        </div>
+      );
     case 'stop':
       return <div className="bubble stop">Stopped: {String(event.reason)}</div>;
     case 'error':
