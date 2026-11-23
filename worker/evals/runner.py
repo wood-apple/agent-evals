@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-import tempfile
 import time
 import traceback
 from collections.abc import Awaitable, Callable
@@ -18,6 +17,7 @@ from evals.graders import Judge, combine, grade_trial
 from evals.harness import Harness, HarnessResult, Trace, TrialEnv
 from evals.harnesses import get_harness
 from evals.model import rate_limit_wait_s
+from evals.sandbox import trial_directory
 from evals.store import Store
 from evals.task import Task
 
@@ -167,8 +167,8 @@ async def run_trial(
     trial_judge = Judge(judge.model)
     waits: list[float] = []
     rate_limit_wait_s.set(waits)
-    with tempfile.TemporaryDirectory(prefix="trial-") as scratch:
-        env = make_env(Path(scratch), task, skills_dir)
+    with trial_directory() as scratch:
+        env = make_env(scratch, task, skills_dir)
         try:
             outcome = await asyncio.wait_for(
                 harness.run(task, config, env, trace), task.timeout_s + TIMEOUT_GRACE_S

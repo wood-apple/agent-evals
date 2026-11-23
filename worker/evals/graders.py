@@ -6,12 +6,11 @@ import os
 import re
 import shutil
 import string
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from evals.model import LiteLLMModel, Model
-from evals.sandbox import run_command
+from evals.sandbox import run_command, trial_directory
 from evals.task import Task
 
 DEFAULT_JUDGE_MODEL = "groq/qwen/qwen3.8-27b"
@@ -194,13 +193,13 @@ UNITTEST_FAILED = re.compile(r"^FAILED \((.*)\)", re.MULTILINE)
 
 
 async def unit_tests(spec, task, answer, workdir, judge):
-    with tempfile.TemporaryDirectory() as scratch:
-        copy = Path(scratch) / "work"
+    with trial_directory(prefix="grading-") as scratch:
+        copy = scratch / "work"
         shutil.copytree(workdir, copy)
         for name in spec["files"]:
             (copy / name).write_text(task.grading_files[f"tests/{name}"])
         output, exit_code = await run_command(
-            spec["command"], cwd=copy, timeout_s=UNIT_TEST_TIMEOUT_S
+            spec["command"], cwd=copy, timeout_s=UNIT_TEST_TIMEOUT_S, as_agent=True
         )
     passed = exit_code == 0
     return passed, unittest_score(output, passed), tail(output)

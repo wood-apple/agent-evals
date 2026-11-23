@@ -37,3 +37,21 @@ async def test_run_python_does_not_see_api_keys(sandbox, monkeypatch):
 async def test_run_python_times_out(sandbox):
     output = await sandbox.run_python("while True: pass")
     assert output.startswith("exit code -1\ntimed out")
+
+
+def test_agent_commands_run_as_the_agent_user_with_only_the_given_env():
+    from evals.sandbox import agent_command
+
+    args, env = agent_command(
+        ["python3", "-c", "print(1)"], {"HOME": "/t/work", "KEY": "v"}, user="agent"
+    )
+    assert args[:6] == ["sudo", "-n", "-u", "agent", "/usr/bin/env", "-i"]
+    assert args[6:8] == ["HOME=/t/work", "KEY=v"]
+    assert args[-3:] == ["python3", "-c", "print(1)"]
+    assert set(env) == {"PATH"}
+
+
+def test_without_an_agent_user_commands_run_unchanged():
+    from evals.sandbox import agent_command
+
+    assert agent_command(["ls"], {"A": "1"}, user=None) == (["ls"], {"A": "1"})
