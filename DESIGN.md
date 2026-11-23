@@ -101,6 +101,9 @@ The line between the two is a judgement call. A malformed tool call that Groq re
 |---|---|---|---|---|
 | claude-haiku-5-5, first version | 81% | 0.58 | 0 | 6 |
 | claude-haiku-5-5, judge also sees the task's input files | **97%** | **0.93** | 0 | 1 |
+| groq/qwen3.8-27b, same prompt (**the default judge**, used in the experiment) | **94%** | **0.87** | 1 | 1 |
+
+Qwen is the default judge because it is free, from a different model family than the gpt-oss agents in the experiment (which avoids self-preference bias), and has its own rate-limit bucket. Haiku scored higher, but the Anthropic account had no credit during this build. The judge model is part of an experiment's id, and every grading event records it, so results graded by different judges are never mixed.
 
 All six disagreements in the first version were the judge being *stricter* than the labels. Reading the reasoning showed why: the release-notes rubric says "no invented dates or versions", and the judge couldn't see `changes.json`, so it treated every date as possibly invented. Showing the judge the task's input files fixed it. The one remaining disagreement (incident-04 gives "yesterday" instead of the date) is a defensible judgement call.
 

@@ -51,7 +51,7 @@ uv run evals judge-validate
 ### Tests
 
 ```bash
-cd worker && uv run pytest        # 180 tests, no network calls
+cd worker && uv run pytest        # 185 tests, no network calls
 cd api && npm test
 cd ui && npm test
 ```
