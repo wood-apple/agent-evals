@@ -1,0 +1,18 @@
+{
+  "label": "baseline · qwen3:8b (local, thinking on)",
+  "harness": "baseline",
+  "model": "ollama_chat/qwen3:8b",
+  "settings": {
+    "temperature": 0.0,
+    "max_steps": 15,
+    "memory": true,
+    "skills": [
+      "acme-finance",
+      "acme-release-notes",
+      "acme-shipping",
+      "git-commit-style",
+      "qlog-format"
+    ],
+    "thinking": true
+  }
+}
