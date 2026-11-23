@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import random
 import re
@@ -22,6 +23,11 @@ RETRYABLE = (
     litellm.Timeout,
     litellm.InternalServerError,
     litellm.ServiceUnavailableError,
+)
+
+
+rate_limit_wait_s: contextvars.ContextVar[list[float] | None] = contextvars.ContextVar(
+    "rate_limit_wait_s", default=None
 )
 
 
@@ -105,7 +111,11 @@ class LiteLLMModel:
                     raise ModelError(
                         f"{type(e).__name__} after {attempt + 1} attempts: {e}"
                     ) from e
-                await self.sleep(retry_delay(e, attempt, self.base_delay_s))
+                delay = retry_delay(e, attempt, self.base_delay_s)
+                waits = rate_limit_wait_s.get()
+                if waits is not None:
+                    waits.append(delay)
+                await self.sleep(delay)
                 continue
             except litellm.BadRequestError as e:
                 if "tool_use_failed" in str(e):

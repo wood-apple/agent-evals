@@ -214,3 +214,26 @@ async def test_grading_event_records_the_judge_model(store, tmp_path):
     await run(store, ScriptedHarness(solve), exp=experiment(1), tmp_path=tmp_path)
     trial = store.get_trials("exp")[0]
     assert store.get_trace(trial.id).events[-1]["judge_model"] == DEFAULT_JUDGE_MODEL
+
+
+async def test_timeout_spent_waiting_on_rate_limits_is_an_infra_error(
+    store, tmp_path, monkeypatch
+):
+    from evals.model import rate_limit_wait_s
+
+    async def throttled(task, config, env, trace):
+        rate_limit_wait_s.get().append(30.0)
+        await asyncio.sleep(5)
+
+    fast_tasks = {k: dataclasses.replace(t, timeout_s=0) for k, t in TASKS.items()}
+    monkeypatch.setattr("evals.runner.TIMEOUT_GRACE_S", 0.05)
+    await run(
+        store,
+        ScriptedHarness(throttled),
+        exp=experiment(1),
+        tasks=fast_tasks,
+        tmp_path=tmp_path,
+    )
+    trials = store.get_trials("exp")
+    assert {t.status for t in trials} == {"error"}
+    assert "rate limits" in trials[0].error

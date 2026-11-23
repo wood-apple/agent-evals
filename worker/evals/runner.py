@@ -16,6 +16,7 @@ from evals.failures import classify
 from evals.graders import Judge, combine, grade_trial
 from evals.harness import Harness, HarnessResult, Trace, TrialEnv
 from evals.harnesses import get_harness
+from evals.model import rate_limit_wait_s
 from evals.store import Store
 from evals.task import Task
 
@@ -144,6 +145,8 @@ async def run_trial(
     status, passed, score, error = "ok", None, None, None
     latency_ms = 0
     trial_judge = Judge(judge.model)
+    waits: list[float] = []
+    rate_limit_wait_s.set(waits)
     with tempfile.TemporaryDirectory(prefix="trial-") as scratch:
         env = make_env(Path(scratch), task, skills_dir)
         try:
@@ -159,8 +162,15 @@ async def run_trial(
                 passed, score = verdict.passed, verdict.score
         except TimeoutError:
             latency_ms = elapsed_ms(trace)
-            trace.add("stop", reason="timeout")
-            status, passed, score = "timeout", False, 0.0
+            if waits:
+                status = "error"
+                error = (
+                    f"timed out after waiting {sum(waits):.0f}s on provider rate limits"
+                )
+                trace.add("error", message=error)
+            else:
+                trace.add("stop", reason="timeout")
+                status, passed, score = "timeout", False, 0.0
         except Exception as e:  # noqa: BLE001 - any harness or grader crash is recorded, not raised
             latency_ms = latency_ms or elapsed_ms(trace)
             status, error = "error", f"{type(e).__name__}: {e}"
