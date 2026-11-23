@@ -175,6 +175,7 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
   - Hermes ignores our `temperature` and `max_tokens` settings (0.19.0 has no per-run setting for them).
   - Hermes uses about 10× the input tokens of the baseline because of its large system prompt.
   - Hermes's tools can reach outside the sandbox directory. Run it inside Docker.
+  - Hermes guesses the Anthropic auth mode from the key prefix: only `sk-ant-api…` Console keys are billed as API usage. The adapter refuses other key types up front.
   - Hermes's token counts include cache reads, which we price at the full input rate, so its cost is an upper bound.
 - **Sandboxing.** Agent code runs as a subprocess without a seccomp or container boundary per trial. That's fine on a laptop or in the compose container, but not for untrusted tasks.
 - **Rate limits.** Free tiers (Groq at 8k tokens per minute, Gemini at 5 requests per minute) shape what can be run. Hermes can't run on Groq's free tier at all, because a single request exceeds the per-minute token limit. Rate-limited trials are `error`, not failures, but a config that hits limits more often is under-sampled until it is resumed.

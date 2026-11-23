@@ -114,6 +114,11 @@ def provider_settings(model: str, home: Path) -> tuple[str, str, dict[str, str]]
     if prefix in NATIVE_PROVIDERS:
         provider, key_var = NATIVE_PROVIDERS[prefix]
         env[key_var] = require_env(key_var)
+        if prefix == "anthropic" and not env[key_var].startswith("sk-ant-api"):
+            raise HermesError(
+                "Hermes treats Anthropic keys that don't start with 'sk-ant-api' as Claude Code "
+                "subscription tokens and bills them that way. Use a Console API key (sk-ant-api03-...)."
+            )
         return provider, name, env
     if prefix in OPENAI_COMPATIBLE:
         base_url, key_var = OPENAI_COMPATIBLE[prefix]

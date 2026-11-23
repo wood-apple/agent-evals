@@ -109,3 +109,11 @@ async def test_crash_without_usage_is_an_error(env):
 async def test_hang_becomes_a_timeout(env):
     with pytest.raises(TimeoutError):
         await run(env, timeout_s=1, mode="hang")
+
+
+def test_non_console_anthropic_keys_are_rejected_up_front(tmp_path, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-usr-not-a-console-key")
+    with pytest.raises(HermesError, match="Console API key"):
+        provider_settings("anthropic/claude-haiku-5-5", tmp_path)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-console-key")
+    assert provider_settings("anthropic/claude-haiku-5-5", tmp_path)[0] == "anthropic"
