@@ -172,7 +172,10 @@ def make_private_agent_dir(path: Path, seed: Path) -> None:
 
 def run_as_agent(args: list[str], umask: str = "002") -> None:
     args, env = agent_command(args, {"PATH": "/usr/bin:/bin"}, umask=umask)
-    subprocess.run(args, env=env, check=True, capture_output=True, timeout=30)
+    done = subprocess.run(args, env=env, check=False, capture_output=True, timeout=30)
+    if done.returncode:
+        stderr = done.stderr.decode(errors="replace").strip()
+        raise RuntimeError(f"{args[-4:]} failed as {AGENT_USER}: {stderr}")
 
 
 def remove_agent_dir(path: Path) -> None:

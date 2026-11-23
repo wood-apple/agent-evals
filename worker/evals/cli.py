@@ -11,6 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from evals import sandbox
 from evals.config import Config, Settings
 from evals.experiment import Experiment, TrialResult, experiment_id
 from evals.export import export_csv, export_json
@@ -29,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
         level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s"
     )
+    if sandbox.AGENT_USER:
+        # the agent user writes into trial dirs this process creates, so they
+        # need group write whether we were started by the API or by docker exec
+        os.umask(0o002)
     args = parser().parse_args(argv)
     return args.handler(args) or 0
 

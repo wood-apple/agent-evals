@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 
@@ -99,3 +100,15 @@ def test_config_add_prints_the_id(db, tmp_path, capsys):
     saved = json.loads(capsys.readouterr().out)
     cli.main(["--db", str(db), "config", "list"])
     assert [c["id"] for c in json.loads(capsys.readouterr().out)] == [saved["id"]]
+
+
+def test_agent_user_gets_group_write_on_dirs_the_worker_creates(
+    db, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.setattr("evals.sandbox.AGENT_USER", "agent")
+    old = os.umask(0o022)
+    try:
+        cli.main(["--db", str(db), "config", "list"])
+        assert os.umask(0o022) == 0o002
+    finally:
+        os.umask(old)
