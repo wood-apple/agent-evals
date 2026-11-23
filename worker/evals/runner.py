@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 import tempfile
 import time
 import traceback
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -65,6 +66,9 @@ async def run_experiment(
     concurrency: int = 4,
     harness_factory: Callable[[str], Harness] = get_harness,
     on_trial: Callable[[TrialResult], None] | None = None,
+    trial_attempts: int = 3,
+    retry_base_s: float = 10.0,
+    sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> RunSummary:
     for config in configs:
         store.save_config(config)
@@ -90,14 +94,26 @@ async def run_experiment(
             if budget.exhausted:
                 summary.skipped_for_budget += 1
                 return
-            result, trace = await run_trial(
-                experiment, job, harnesses[job.config.harness], skills_dir, judge
-            )
+            earlier_errors = []
+            for attempt in range(trial_attempts):
+                result, trace = await run_trial(
+                    experiment, job, harnesses[job.config.harness], skills_dir, judge
+                )
+                budget.spent_usd += result.cost_usd + judge_cost(trace)
+                if result.status != "error" or attempt == trial_attempts - 1:
+                    break
+                earlier_errors.append(result.error)
+                await sleep(retry_base_s * 2**attempt * random.uniform(0.5, 1.5))
+            if earlier_errors:
+                trace.events.insert(
+                    0,
+                    {
+                        "type": "retried",
+                        "attempts": len(earlier_errors) + 1,
+                        "errors": earlier_errors,
+                    },
+                )
             store.save_trial(result, trace)
-            judge_cost = sum(
-                e.get("cost_usd", 0) for e in trace.events if e["type"] == "grading"
-            )
-            budget.spent_usd += result.cost_usd + judge_cost
             summary.ran += 1
             summary.statuses[result.status] = summary.statuses.get(result.status, 0) + 1
             if on_trial:
@@ -116,6 +132,10 @@ def trial_id_for(
     experiment: Experiment, task_id: str, config: Config, index: int
 ) -> str:
     return TrialResult(experiment.id, task_id, "", config.id, index, "").id
+
+
+def judge_cost(trace: TrialTrace) -> float:
+    return sum(e.get("cost_usd", 0) for e in trace.events if e["type"] == "grading")
 
 
 def check_task_versions(

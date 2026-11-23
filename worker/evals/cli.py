@@ -70,6 +70,12 @@ def parser() -> argparse.ArgumentParser:
         "--budget", type=float, default=float(os.environ.get("EVALS_BUDGET_USD", "5"))
     )
     run.add_argument("--seed", type=int, default=0)
+    run.add_argument(
+        "--trial-attempts",
+        type=int,
+        default=3,
+        help="attempts per trial on infrastructure errors",
+    )
     run.set_defaults(handler=cmd_run)
 
     cmp = sub.add_parser("compare", help="compare two configs in an experiment")
@@ -223,6 +229,7 @@ def cmd_run(args) -> int:
             budget=Budget(args.budget),
             judge=judge,
             concurrency=args.concurrency,
+            trial_attempts=args.trial_attempts,
             on_trial=progress,
         )
     )

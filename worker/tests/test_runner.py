@@ -55,6 +55,10 @@ async def solve(task, config, env, trace):
     return HarnessResult(("ANSWER: 41",))
 
 
+async def no_sleep(_):
+    pass
+
+
 class NoJudge:
     model = None
 
@@ -88,7 +92,7 @@ async def run(
         budget=Budget(budget),
         judge=Judge(NoJudge.model),
         harness_factory=lambda name: harness,
-        **kwargs,
+        **{"sleep": no_sleep, "trial_attempts": 1} | kwargs,
     )
 
 
@@ -237,3 +241,56 @@ async def test_timeout_spent_waiting_on_rate_limits_is_an_infra_error(
     trials = store.get_trials("exp")
     assert {t.status for t in trials} == {"error"}
     assert "rate limits" in trials[0].error
+
+
+async def test_infra_errors_are_retried_with_a_fresh_sandbox(store, tmp_path):
+    calls = []
+
+    async def flaky_once(task, config, env, trace):
+        calls.append((task.id, config.label))
+        if calls.count((task.id, config.label)) == 1:
+            (env.workdir / "half-done.txt").write_text("x")
+            raise ConnectionError("gateway disconnected")
+        return await solve(task, config, env, trace)
+
+    summary = await run(
+        store,
+        ScriptedHarness(flaky_once),
+        exp=experiment(1),
+        tmp_path=tmp_path,
+        trial_attempts=3,
+    )
+    assert summary.statuses == {"ok": 4}
+    assert len(calls) == 8
+    trial = store.get_trials("exp")[0]
+    first = store.get_trace(trial.id).events[0]
+    assert first == {
+        "type": "retried",
+        "attempts": 2,
+        "errors": ["ConnectionError: gateway disconnected"],
+    }
+
+
+async def test_retries_give_up_after_the_last_attempt(store, tmp_path):
+    async def always_down(task, config, env, trace):
+        raise ConnectionError("down")
+
+    delays = []
+
+    async def record(seconds):
+        delays.append(seconds)
+
+    await run(
+        store,
+        ScriptedHarness(always_down),
+        exp=experiment(1, task_ids=("answer",)),
+        tmp_path=tmp_path,
+        trial_attempts=3,
+        sleep=record,
+        retry_base_s=10.0,
+    )
+    assert {t.status for t in store.get_trials("exp")} == {"error"}
+    assert len(delays) == 4
+    assert all(5 <= d <= 15 for d in delays[::2]) and all(
+        10 <= d <= 30 for d in delays[1::2]
+    )
