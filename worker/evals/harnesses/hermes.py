@@ -23,6 +23,9 @@ NATIVE_PROVIDERS = {
 }
 
 
+CONSOLE_KEY_PREFIXES = ("sk-ant-api", "sk-ant-usr", "sk-ant-svc", "sk-ant-admin")
+
+
 class HermesError(Exception):
     pass
 
@@ -114,10 +117,10 @@ def provider_settings(model: str, home: Path) -> tuple[str, str, dict[str, str]]
     if prefix in NATIVE_PROVIDERS:
         provider, key_var = NATIVE_PROVIDERS[prefix]
         env[key_var] = require_env(key_var)
-        if prefix == "anthropic" and not env[key_var].startswith("sk-ant-api"):
+        if prefix == "anthropic" and not env[key_var].startswith(CONSOLE_KEY_PREFIXES):
             raise HermesError(
-                "Hermes treats Anthropic keys that don't start with 'sk-ant-api' as Claude Code "
-                "subscription tokens and bills them that way. Use a Console API key (sk-ant-api03-...)."
+                "Hermes treats this Anthropic key as a Claude Code subscription token and bills it "
+                "that way. Use a Console API key."
             )
         return provider, name, env
     if prefix in OPENAI_COMPATIBLE:
