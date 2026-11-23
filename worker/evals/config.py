@@ -8,8 +8,9 @@ from evals.hashing import content_hash
 @dataclass(frozen=True)
 class Settings:
     temperature: float = 0.0
-    max_steps: int = 10
-    max_tokens: int = 4000
+    max_steps: int = 15
+    max_tokens: int = 8000
+    token_budget: int = 300_000
     memory: bool = False
     skills: tuple[str, ...] = ()
     tools: tuple[str, ...] = ()
