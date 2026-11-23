@@ -1,0 +1,6 @@
+{
+  "label": "baseline · gpt-oss-120b",
+  "harness": "baseline",
+  "model": "groq/openai/gpt-oss-120b",
+  "settings": {"temperature": 0.0, "max_steps": 15}
+}
