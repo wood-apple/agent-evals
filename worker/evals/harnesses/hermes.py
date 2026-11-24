@@ -78,6 +78,7 @@ class HermesHarness:
         if config.settings.memory:
             before = snapshot(home, env.state_dir / f"snapshot-{index}-before")
             trace.add("memory_read", session=index, content=read_memory(before))
+            remove_agent_dir(before)
         args = [
             self.binary,
             "-z",
@@ -103,6 +104,16 @@ class HermesHarness:
                 f"hermes session {index} hit the {task.timeout_s}s timeout"
             )
         after = snapshot(home, env.state_dir / f"snapshot-{index}-after")
+        try:
+            return self.read_session(
+                index, after, usage_path, exit_code, output, config, trace
+            )
+        finally:
+            # the agent can search state/, so a snapshot left there leaks this
+            # session into the next one when memory is off
+            remove_agent_dir(after)
+
+    def read_session(self, index, after, usage_path, exit_code, output, config, trace):
         usage = read_json(after / usage_path.name)
         if usage is None:
             raise HermesError(
@@ -112,6 +123,7 @@ class HermesHarness:
         trace.events.extend(
             transcript_events(after / "state.db", usage.get("session_id"), index)
         )
+        trace.add("memory_state", session=index, content=read_memory(after))
         if usage.get("failed"):
             raise HermesError(f"hermes run failed (exit {exit_code}): {output[-500:]}")
         return output.strip(), usage.get("completed", True)

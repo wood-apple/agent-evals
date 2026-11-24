@@ -52,6 +52,7 @@ async def test_runs_each_session_and_reads_the_transcript(env):
         "memory_write",
         "tool_result",
         "model_response",
+        "memory_state",
     ]
     assert trace.events[1]["content"] == ""
     assert (
@@ -152,10 +153,14 @@ def test_leftover_processes_of_a_trial_are_stopped(tmp_path):
 
 
 async def test_memory_off_gives_every_session_a_fresh_home(env):
+    _, trace = await run(env, "first", "second")
+    states = [e["content"] for e in trace.events if e["type"] == "memory_state"]
+    assert states == ["first\n", "second\n"]
+
+
+async def test_no_snapshots_are_left_where_a_later_session_could_read_them(env):
     await run(env, "first", "second")
-    for index, prompt in enumerate(("first", "second")):
-        snapshot = env.state_dir / f"snapshot-{index}-after"
-        assert (snapshot / "memory.md").read_text() == f"{prompt}\n"
+    assert not list(env.state_dir.glob("snapshot-*"))
 
 
 async def test_memory_off_removes_each_session_home_so_later_sessions_cannot_read_it(
