@@ -171,3 +171,16 @@ async def test_memory_on_shares_one_home_across_sessions(env):
     assert (
         env.state_dir / "hermes" / "memories" / "MEMORY.md"
     ).read_text() == "first\nsecond\n"
+
+
+async def test_fresh_workspace_clears_files_left_by_earlier_sessions(env):
+    (env.workdir / "NOTES.md").write_text("port 6432")
+    _, trace = await run(env, "first", "second", fresh_workspace=True)
+    assert not (env.workdir / "NOTES.md").exists()
+    assert [e["session"] for e in trace.events if e["type"] == "workspace_reset"] == [1]
+
+
+async def test_workspace_is_shared_across_sessions_by_default(env):
+    (env.workdir / "NOTES.md").write_text("port 6432")
+    await run(env, "first", "second")
+    assert (env.workdir / "NOTES.md").exists()

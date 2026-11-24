@@ -8,6 +8,7 @@ export interface Settings {
   tools: string[];
   thinking: boolean | null;
   verify?: boolean | null;
+  fresh_workspace?: boolean | null;
 }
 
 export interface Config {

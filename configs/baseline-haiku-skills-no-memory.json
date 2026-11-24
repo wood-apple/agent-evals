@@ -12,6 +12,7 @@
       "acme-shipping",
       "git-commit-style",
       "qlog-format"
-    ]
+    ],
+    "fresh_workspace": true
   }
 }

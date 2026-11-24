@@ -64,6 +64,7 @@ function ConfigForm({ onSaved }: { onSaved: () => void }) {
           max_steps: maxSteps,
           token_budget: tokenBudget,
           memory,
+          ...(memory ? {} : { fresh_workspace: true }),
           skills,
           ...(thinking === 'default' ? {} : { thinking: thinking === 'on' }),
         },
@@ -123,7 +124,7 @@ function ConfigForm({ onSaved }: { onSaved: () => void }) {
         </label>
         <label className="check">
           <input type="checkbox" checked={memory} onChange={(e) => setMemory(e.target.checked)} /> Memory (persists across
-          sessions within one trial only)
+          sessions within one trial only; when off, each session also starts from a fresh workspace)
         </label>
         <fieldset>
           <legend>Skills</legend>

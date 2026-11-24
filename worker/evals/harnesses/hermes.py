@@ -13,6 +13,7 @@ from evals.sandbox import (
     clean_env,
     make_private_agent_dir,
     remove_agent_dir,
+    reset_workspace,
     run_as_agent,
     run_command,
     stop_processes_with,
@@ -48,6 +49,9 @@ class HermesHarness:
     ) -> HarnessResult:
         answers = []
         for index, prompt in enumerate(task.sessions):
+            if index and config.settings.fresh_workspace:
+                reset_workspace(env.workdir, task.fixtures)
+                trace.add("workspace_reset", session=index)
             home = session_home(env.state_dir, config, index)
             try:
                 answer, finished = await self.run_session(
