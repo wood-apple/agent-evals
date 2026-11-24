@@ -75,6 +75,7 @@ The line between the two is a judgement call. A malformed tool call that Groq re
 ## Isolation and reproducibility
 
 - **Each trial gets a fresh temporary directory:** `work/`, seeded with the task fixtures, and `state/`, the harness's private state (baseline memory file, Hermes home). Both are deleted afterwards. Memory carries across the sessions of one trial and never across trials (`test_runner.py::test_runs_every_task_config_and_trial` asserts that each trial sees only its own fixtures).
+- **Memory off means no persistence at all.** The work directory persists across the sessions of a trial, and with the memory tool removed agents use it as memory: Haiku wrote itself a notes file and read it back (experiment 11). Memory-off configs therefore set `fresh_workspace`, which restores the task's fixtures before every session after the first, in both harnesses. The UI sets it whenever memory is off.
 - **Agent code runs in a subprocess** with the sandbox as working directory and HOME, a timeout, and an environment stripped of API keys. Paths in file tools can't escape the sandbox. This is isolation for correctness, not a security boundary (see known limits). Docker provides the outer boundary.
 - **In Docker, agent code runs as a separate `agent` user.** Hermes, `run_python` and the hidden unit tests run via `sudo -u agent` with a clean environment. The app (`/app`, including tasks and results) isn't readable by that user, the trials directory can't be listed, and each trial directory is shared only between the worker and `agent`. Run on the host without Docker, everything runs as you and only the path checks apply.
 - **Hidden tests are copied in at grading time,** into a copy of the work directory, so the agent can't read or edit them.
@@ -104,6 +105,17 @@ The line between the two is a judgement call. A malformed tool call that Groq re
 | claude-haiku-5-5, judge also sees the task's input files | **97%** | **0.93** | 0 | 1 |
 | groq/qwen3.8-27b, same prompt (**the default judge**, used in the experiment) | **94%** | **0.87** | 1 | 1 |
 
+**Repeat runs (experiment 14).** One validation run of a judge is a sample, not a measurement:
+
+| Judge | κ per run | Verdict flips between runs |
+|---|---|---|
+| claude-sonnet-5-5 | 0.93, 0.93 | 0/32 |
+| claude-haiku-5-5 | 0.87, 0.80, 0.93 | 3/32 |
+| claude-opus-5-5 | 0.80, 0.80 | 0/32 (too strict on the same three items) |
+| qwen3:8b (local, Ollama) | 0.69, 0.74 | 2/31, plus one empty reply (every error is too lenient) |
+
+Sonnet 5.5 is the most accurate and the most stable, and it is what experiments 5–14 used. Qwen stays the default in code only because it's free; its 200k-tokens-a-day cap covers about one full experiment a day. Set `JUDGE_MODEL` to choose another.
+
 Qwen is the default judge because it is free, from a different model family than the gpt-oss agents in the experiment (which avoids self-preference bias), and has its own rate-limit bucket. Haiku scored higher, but the Anthropic account had no credit during this build. The judge model is part of an experiment's id, and every grading event records it, so results graded by different judges are never mixed.
 
 All six disagreements in the first version were the judge being *stricter* than the labels. Reading the reasoning showed why: the release-notes rubric says "no invented dates or versions", and the judge couldn't see `changes.json`, so it treated every date as possibly invented. Showing the judge the task's input files fixed it. The one remaining disagreement (incident-04 gives "yesterday" instead of the date) is a defensible judgement call.
@@ -126,6 +138,8 @@ The unit of comparison is a **pair**: the same task and the same trial index und
 - **N ≥ 3** so that each task has some within-task variance.
 - **For a per-task verdict, N ≥ 5.** With N = 3 even a complete flip (0/3 → 3/3) only reaches Fisher p = 0.10. With N = 5 a complete flip gives p = 0.008, and 5/5 vs 1/5 gives p = 0.048. There's a test for exactly this (`test_one_task_flip_needs_five_trials_to_count`).
 - **For the aggregate, more tasks beats more trials** once N ≥ 3. Most of the variance is *between* tasks, and the bootstrap resamples tasks.
+- **Evidence from the overnight runs:** subsampling finished experiments (`analysis/trials_needed.py`) showed that N = 2 reproduced the N = 5 verdict in 10/10 subsets for both real effects (about ±20 pp), and never produced a false "better" for the A/A test. At N = 1 the verdict hedged ("tests disagree, run more trials") instead of claiming the wrong direction.
+- **Local models at temperature 0 are deterministic.** qwen3:8b gave identical final answers on 25/25 tasks across 5 trials (experiment 12). Run N = 1 for them, or sample at a non-zero temperature if the question is about the distribution.
 - **In practice:** run a cheap pilot at N = 2–3, drop ceiling and floor tasks, read the detectable difference the report prints, and only then decide whether a bigger run can answer the question.
 
 ## Failure categories
@@ -148,6 +162,8 @@ Hermes's tool names are mapped onto ours (`execute_code`/`terminal` count as `ru
 ## Budget, retries and partial failures
 
 - **Retries:** the model adapter retries rate limits, timeouts and 5xx errors with exponential backoff and jitter, and waits at least as long as the provider's "try again in Ns" hint. It does not retry 4xx errors. Hermes does its own retries.
+- **Deadlines:** every model call is wrapped in an asyncio deadline (request timeout + 10 s). litellm's own timeout didn't fire on some dropped connections, and five runs once sat on dead sockets until killed.
+- **Provider hints can be long.** A daily cap answers with "try again in 10m", and the adapter obeys it, so a capped judge looks like a hang. Watch the log for `per day` limits.
 - **Budget:** a hard cap per run. No new trial starts once agent plus judge spend reaches the cap. Trials already running finish, so the worst-case overshoot is (concurrency − 1) × the cost of one trial. A run stopped by the budget or with errors is marked `partial`. Run the same command again to resume it.
 - **Trial ordering:** trials are scheduled by trial index, then task, then config. A run that stops early therefore leaves complete A/B pairs rather than "all of A, half of B".
 - **Resume:** errored trials are deleted and re-run, and finished trials are skipped. If a task changed since the experiment started, resume refuses to continue, because mixing task versions in one comparison would be meaningless.
@@ -170,7 +186,7 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
 
 - **Task set size.** 25 tasks cannot detect small effects. The report prints the detectable difference for every comparison, so read "no difference" as "no difference larger than X".
 - **Task difficulty.** Several tasks sit at the ceiling for strong models and carry no signal. The per-task table flags them.
-- **Judge bias.** The judge is validated on 32 AI-drafted labels, not human ones. An LLM judge from the same family as the agent may favour its own style. Use a judge from another provider (the default judge is not the experiment's agent model).
+- **Judge bias.** The judge is validated on 32 AI-drafted labels, not human ones. An LLM judge from the same family as the agent may favour its own style. Use a judge from another provider (the default judge is not the experiment's agent model). Experiments 5–14 used Sonnet 5.5 to judge Haiku and Sonnet agents, which is the same family. The skills result agreed with the Groq-judged run (+21.6 vs +19.2 pp), but same-family preference wasn't measured separately.
 - **Contamination.** Roman numerals, binary search, primes and slugify are textbook problems that are probably in training data, so they test recall as much as agent skill. The ACME skill tasks and their conventions were invented for this set and are contamination-free.
 - **Harness quirks.**
   - Hermes ignores our `temperature`, `max_tokens` and `thinking` settings (there is no per-run setting for them). The `thinking` switch is currently applied only to Ollama models.
@@ -180,12 +196,15 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
   - Hermes refuses to run as root in a container, so the image runs everything as the unprivileged `node` user.
   - The pinned Hermes installs provider SDKs on first use, per home directory. Since every trial gets a fresh home, the SDKs (`anthropic`, `google` extras) are installed into Hermes's own environment instead.
   - Hermes's token counts include cache reads, which we price at the full input rate, so its cost is an upper bound.
+- **The judge doesn't see skills.** It sees the task and its input files, but not the skills the agent loaded, so skill-derived content can look invented (experiment 8).
+- **Thinking flags aren't always honoured.** `qwen3:30b-a3b` on Ollama ignores `think: false` and writes its reasoning into the answer. Check output token counts, not just the config.
+- **Price table.** LiteLLM fetches its price map from GitHub at startup and falls back to a bundled copy, so a cost can change without a code change. Set `LITELLM_LOCAL_MODEL_COST_MAP=True` to pin it. Hermes cost is priced on a session's summed tokens, so a session over 100k tokens would get Haiku's 5× long-context rate.
 - **Sandboxing.** Agent code runs as a subprocess without a seccomp or container boundary per trial. That's fine on a laptop or in the compose container, but not for untrusted tasks.
-- **Rate limits.** Free tiers (Groq at 8k tokens per minute, Gemini at 5 requests per minute) shape what can be run. Hermes can't run on Groq's free tier at all, because a single request exceeds the per-minute token limit. Rate-limited trials are `error`, not failures, but a config that hits limits more often is under-sampled until it is resumed.
+- **Rate limits.** Free tiers (Groq at 8k tokens per minute and 200k per day, Gemini at 5 requests per minute) shape what can be run. Hermes can't run on Groq's free tier at all, because a single request exceeds the per-minute token limit. Rate-limited trials are `error`, not failures, but a config that hits limits more often is under-sampled until it is resumed.
 - **Rate-limit timeouts are coarse.** A trial that times out after *any* wait on a 429 or 503 from the provider is an infrastructure error, not an agent failure. A better rule would compare the wait with the timeout. Request timeouts used to count as rate-limit waits, so a slow model's trials were excluded instead of failed; see experiment 3.
 - **Latency depends on what else is running.** Experiments 2 and 3 ran at the same time on one laptop, so their latencies are comparable within each experiment but not across them.
 - **Local models run with thinking off.** With thinking on, qwen3:8b was too slow for the task timeouts on a laptop. It's a versioned setting, so a thinking-on run would be a separate config.
-- **Statistics.** McNemar treats trial pairs as independent, but trials of the same task are correlated, so its p-value is optimistic. That's why the verdict also requires the task-level bootstrap CI to exclude 0.
+- **Statistics.** McNemar treats trial pairs as independent, but trials of the same task are correlated, so its p-value is optimistic. For a deterministic model the trials are exact copies, which is the extreme case. That's why the verdict also requires the task-level bootstrap CI to exclude 0.
 - **Memory tasks** test recall within a trial across sessions. They don't test long-horizon memory quality or memory pollution.
 - **SQLite across Docker's VM boundary.** WAL needs shared memory between readers and writers, so a worker on the host and the API in a container must not share one live database. Within one container, or entirely on the host, it's fine. A server database (Postgres) would remove this limit, and the store is one small class.
 - **Single machine.** The runner is a single process (asyncio). Concurrency is limited by provider limits long before CPU.
@@ -193,7 +212,7 @@ Prices come from LiteLLM's price table (list prices, even on free tiers). The me
 ## Assumptions
 
 - **"Versioned configs"** means content-addressed: the same settings always give the same id, and any change gives a new one. There is no mutable "v2 of config X".
-- **"Isolated unless memory says so"** means memory persists across the sessions of one trial, never across trials.
+- **"Isolated unless memory says so"** means memory persists across the sessions of one trial, never across trials. With memory off, nothing persists between sessions, the work directory included.
 - **Running out of steps, tokens or time is the agent's failure. Infrastructure trouble is not.**
 - **A multi-session task is graded on the final session's answer and the final sandbox state.**
 - **Skills are made available, not forced.** The agent sees names and descriptions and loads the full text on demand, the same way Hermes does it.

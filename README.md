@@ -20,7 +20,7 @@ docker compose up --build   # http://localhost:3000
 
 Results live in `results/evals.db` (SQLite), which is mounted into the container, so runs survive restarts.
 
-Start runs from the UI (or `docker compose exec app evals ...`) while the container is up. Don't run the worker on the host against the same `results/` folder at the same time: SQLite's WAL mode needs reader and writer on the same machine, and Docker Desktop's file sharing crosses a VM boundary, so the container reads the database as malformed until the host writer stops.
+Start runs from the UI (or `docker compose exec app /app/worker/.venv/bin/evals ...`; set `-e JUDGE_MODEL=...` to pick the judge) while the container is up. Don't run the worker on the host against the same `results/` folder at the same time: SQLite's WAL mode needs reader and writer on the same machine, and Docker Desktop's file sharing crosses a VM boundary, so the container reads the database as malformed until the host writer stops.
 
 In the UI: **Configs** → define two configs that differ in one thing → **Experiments** → pick both, choose trials and a budget → **Run**. The experiment page fills in live: verdict and confidence interval, cost and latency, per-task deltas, and a grid of trials. Click any trial to see its full trajectory and grader reasoning. Export results as JSON or CSV from the same page.
 
