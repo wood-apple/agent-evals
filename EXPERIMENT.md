@@ -329,9 +329,12 @@ Each judge graded the 32 labelled answers (`judge-validation/`) more than once, 
 - A single validation run of a cheap judge is noisy. Haiku's κ varied as much as the gap between judges, and it flipped on the same borderline items Opus fails.
 - Task-design fix found through the judge: the `judge-incident-update` rubric required an apology that the prompt never asked for, so the task's pass rate depended on how strictly the judge read rubric item 6 (Groq passed answers without one, Sonnet failed about 80% of them). The prompt now asks for the apology (`3c0c923`).
 
-### Not finished
+### Late runs: qwen3:30b-a3b
 
-The laptop was on battery. It reached 1% and the Mac was forced to sleep from 02:32 to 08:52, which `caffeinate` can't prevent. The test nudge on `qwen3:30b-a3b` and the local models as judges didn't run. A smoke test showed why the 30B model would have been slow anyway: it ignores `think: false` and writes its reasoning into the answer (3–8k output tokens, 95–315 s per trial). Mixing 8B and 30B configs in one experiment also makes Ollama swap 18 GB on every trial (5 trials in 10 minutes), so local models of different sizes belong in separate experiments.
+The laptop was on battery. It reached 1% and the Mac was forced to sleep from 02:32 to 08:52, which `caffeinate` can't prevent, so the 30B runs finished in the afternoon instead. The 30B model ignores `think: false` and writes its reasoning into the answer (3–8k output tokens, 95–315 s per trial). Mixing 8B and 30B configs in one experiment also makes Ollama swap 18 GB on every trial (5 trials in 10 minutes), so local models of different sizes belong in separate experiments.
+
+- **Test nudge on qwen3:30b-a3b** (`exp-0ac72af23cb5`, N = 1, temperature 0): 52.0% → 52.0%, 2 vs 2 discordant tasks, no difference. The 30B model passes 20 points more than the 8B (32%), but it didn't run code in any coding trial, with or without the nudge (0/5 each), where the 8B went 0/10 → 6/10. The nudge also added 4 → 7 timeouts and +31 s median latency.
+- **qwen3:30b-a3b as a judge** (1 run): of 32 items, 21 came back empty or as broken JSON, because the reasoning it writes into the answer eats the output. The 11 it did parse all matched the labels. Not usable as a judge without a parser fix or real thinking control.
 
 ### Overnight cost
 
