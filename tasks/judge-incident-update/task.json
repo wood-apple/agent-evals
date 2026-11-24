@@ -8,7 +8,7 @@
   ],
   "sessions": [
     {
-      "prompt": "incident.log contains the internal timeline of yesterday's incident. Write the customer-facing status-page update (3 to 5 sentences) as your final reply. Do not include anything else."
+      "prompt": "incident.log contains the internal timeline of yesterday's incident. Write the customer-facing status-page update (3 to 5 sentences, apologising for the disruption) as your final reply. Do not include anything else."
     }
   ],
   "graders": [
