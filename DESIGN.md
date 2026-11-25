@@ -2,28 +2,7 @@
 
 ## Architecture
 
-```
-            ┌──────────── React UI (ui/) ────────────┐
-            │ configs · experiments · comparison ·    │
-            │ trial trajectories · judge validation   │
-            └───────────────────┬─────────────────────┘
-                                │ HTTP /api
-            ┌───────────────────▼─────────────────────┐
-            │ NestJS API (api/)                        │
-            │  reads results DB (read-only, node:sqlite)│
-            │  calls the worker CLI for anything that  │
-            │  needs platform logic (config ids, runs, │
-            │  stats, export)                          │
-            └──────┬─────────────────────────┬────────┘
-       spawn `evals run`             read-only SQL
-            ┌──────▼──────────────┐   ┌──────▼─────────┐
-            │ Python worker       │──▶│ results/evals.db│
-            │ (worker/evals/)     │   │ SQLite, WAL     │
-            └──────┬──────────────┘   └────────────────┘
-        ┌──────────┼────────────┐
-   Harness adapters      Model adapter (LiteLLM)
-   baseline · hermes     gemini · groq · anthropic · ollama
-```
+![Agent Evals architecture: all evaluation logic lives in the Python worker; the API only reads and spawns it](docs/architecture.png)
 
 **Where the boundary is.** All evaluation logic lives in Python: config hashing, task versions, harnesses, grading, the runner, statistics and export. The API never re-implements any of it. It reads the database for lists and traces and shells out to the `evals` CLI for everything else. Config ids are content hashes, so computing them in two languages would be a bug waiting to happen. The cost is about 300 ms of process start-up per comparison request, which is fine for a tool like this.
 
@@ -55,6 +34,88 @@ Hermes Agent, pinned to commit `0f602c5` (v0.23.3+984) and installed from source
 - after each session, read `$HERMES_HOME/state.db` (Hermes's own transcript store) and convert every assistant message, tool call and tool result into our trace events. The usage file gives the tokens.
 
 ## Data model
+
+```mermaid
+classDiagram
+    direction LR
+
+    class Config {
+        +str id = hash(harness, model, settings)
+        +str harness
+        +str model
+        +Settings settings
+        +str label  not hashed
+    }
+    class Settings {
+        +float temperature
+        +int max_steps
+        +int max_tokens
+        +int token_budget
+        +bool memory
+        +tuple skills
+        +tuple tools
+        +bool? thinking
+        +bool? verify
+        +bool? fresh_workspace
+    }
+    class Task {
+        +str id
+        +str version = hash(sessions, graders, fixtures, tests, timeout, tools)
+        +str title
+        +str category
+        +tuple sessions
+        +tuple graders
+        +int timeout_s
+        +dict fixtures
+        +dict grading_files
+    }
+    class Skill {
+        +str name
+        +str description
+        +str body
+    }
+    class Experiment {
+        +str id = hash(name, task versions, config ids, N, seed, judge)
+        +str name
+        +tuple task_ids
+        +tuple config_ids
+        +int n_trials
+        +int seed
+        +str status
+    }
+    class TrialResult {
+        +str id = hash(experiment, task, config, index)
+        +str task_version
+        +int trial_index
+        +str status  ok | timeout | error
+        +bool? passed
+        +float? score
+        +int input_tokens
+        +int output_tokens
+        +float cost_usd
+        +int latency_ms
+        +str? failure_category
+    }
+    class TrialTrace {
+        +list events
+        +list grades
+    }
+    class Grade {
+        +str grader
+        +bool passed
+        +float score
+        +str reasoning
+        +bool required
+    }
+
+    Config *-- "1" Settings
+    Settings ..> "*" Skill : names
+    Experiment "1" --> "*" TrialResult : N per task x config
+    TrialResult "*" --> "1" Config
+    TrialResult "*" --> "1" Task : pinned version
+    TrialResult "1" *-- "1" TrialTrace : same transaction
+    TrialTrace "1" *-- "*" Grade
+```
 
 | Entity | Identity | Notes |
 |---|---|---|
